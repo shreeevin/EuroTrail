@@ -1,0 +1,139 @@
+@page "/register"
+@layout EuroTrail.Components.Layout.AuthLayout
+
+@using EuroTrail.Helpers
+@using EuroTrail.Models
+
+@inject NavigationManager NavigationManager
+
+@code {
+    private List<Currency> Currencies = new();
+    private string SelectedCurrencyCode = "USD"; 
+
+    private string Username { get; set; } = string.Empty;
+    private string Password { get; set; } = string.Empty;
+
+    private string? UsernameError { get; set; }
+    private string? PasswordError { get; set; }
+    private string? GeneralError { get; set; }
+
+    private const string DefaultCurrencyCode = "USD";
+
+    protected override void OnInitialized()
+    {
+        Currencies = CurrencyHelper.GetCurrencies();
+    }
+
+    private async Task HandleSubmit()
+    {
+        UsernameError = null;
+        PasswordError = null;
+        GeneralError = null;
+
+        if (string.IsNullOrWhiteSpace(Username))
+        {
+            UsernameError = "Username is required.";
+        }
+
+        if (string.IsNullOrWhiteSpace(Password))
+        {
+            PasswordError = "Password is required.";
+        }
+        else if (Password.Length < 6)
+        {
+            PasswordError = "Password must be at least 6 characters long.";
+        }
+
+        if (UsernameError != null || PasswordError != null)
+        {
+            return;
+        }
+
+        try
+        {
+            var registrationSuccessful = await EuroTrail.Services.AuthService.Register(Username, Password, SelectedCurrencyCode);
+
+            if (registrationSuccessful)
+            {
+                NavigationManager.NavigateTo("/login");
+            }
+            else
+            {
+                GeneralError = "An error occurred during registration.";
+            }
+        }
+        catch (Exception ex)
+        {
+            GeneralError = $"An error occurred: {ex.Message}";
+        }
+    }
+}
+
+<div class="flex justify-center items-center flex-col gap-2 h-screen bg-gray-950">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+        <h2 class="text-2xl font-semibold mb-2">Register</h2>
+        <span class="text-sm text-gray-400">Sign up to access personalized features and updates.</span>
+        <EditForm Model="@this" OnValidSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mt-5">
+                <div class="mb-2">
+                    <label class="text-sm text-gray-500">Username</label>
+                    <InputText 
+						@bind-Value="Username" 
+						placeholder="john"
+						class="w-full p-2 border rounded mt-1" 
+					/>
+                    @if (UsernameError != null)
+                    {
+                        <span class="text-red-500 text-xs mt-1 block">@UsernameError</span>
+                    }
+                </div>
+
+                <div class="mb-2">
+                    <label class="text-sm text-gray-500">Password</label>
+                    <InputText 
+						@bind-Value="Password" 
+						placeholder="********" 
+						type="password" 
+                    	class="w-full p-2 border rounded mt-1" 
+					/>
+                    @if (PasswordError != null)
+                    {
+                        <span class="text-red-500 text-xs mt-1 block">@PasswordError</span>
+                    }
+                </div>
+
+                <div class="mb-2">
+                    <label class="text-sm text-gray-500">Currency</label>
+                    <select 
+                        id="currency" 
+                        @bind="SelectedCurrencyCode" 
+                        class="w-full p-2 border rounded mt-1
+					">
+                        @foreach (var currency in Currencies)
+                        {
+                            <option value="@currency.Code" selected="@(currency.Code == DefaultCurrencyCode)">
+                                @currency.Name (@currency.Code)
+                            </option>
+                        }
+                    </select>                    
+                </div>
+            </div>
+
+            @if (GeneralError != null)
+            {
+                <div class="text-red-500 text-sm my-3">@GeneralError</div>
+            }
+
+            <button type="submit" class="w-full py-2 text-white rounded flex justify-center items-center bg-gray-700 hover:bg-gray-950">
+                Register
+            </button>
+        </EditForm>
+
+        <p class="mt-4 text-center text-gray-400">
+            Already have an account? <a class="text-gray-900 font-medium" href="/login" data-discover="true">Login</a>
+        </p>
+    </div>
+</div>

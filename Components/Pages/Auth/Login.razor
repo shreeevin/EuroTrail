@@ -1,0 +1,105 @@
+@page "/login"
+@layout EuroTrail.Components.Layout.AuthLayout
+@inject NavigationManager NavigationManager
+
+@code {
+	private string Username { get; set; } = "nben"; // string.Empty 
+    private string Password { get; set; } = "123456789"; // string.Empty
+
+    private string? UsernameError { get; set; }
+    private string? PasswordError { get; set; }
+    private string? GeneralError { get; set; }
+
+    private async Task HandleLogin()
+    {
+        UsernameError = null;
+        PasswordError = null;
+        GeneralError = null;
+
+        if (string.IsNullOrWhiteSpace(Username))
+        {
+            UsernameError = "Username is required.";
+        }
+
+        if (string.IsNullOrWhiteSpace(Password))
+        {
+            PasswordError = "Password is required.";
+        }
+
+        else if (Password.Length < 6)
+        {
+            PasswordError = "Password must be at least 6 characters long.";
+        }
+
+        if (UsernameError != null || PasswordError != null)
+        {
+            return;
+        }
+
+        try
+        {
+            var loginSuccessful = await EuroTrail.Services.AuthService.Login(Username, Password);
+
+            if (loginSuccessful)
+            {
+                NavigationManager.NavigateTo("/dashboard");
+            }
+            else
+            {
+                GeneralError = "Invalid username or password.";
+            }
+        }
+        catch (Exception ex)
+        {
+            GeneralError = $"An error occurred: {ex.Message}";
+        }
+    }
+}
+<div class="flex justify-center items-center flex-col gap-2 h-screen bg-gray-950">
+	<div class="bg-white p-6 rounded-lg shadow-lg w-96">
+
+		<h2 class="text-2xl font-semibold mb-2">Login</h2>
+		<span class="text-sm text-gray-400">Enter your credentials to access your account.</span>
+
+		<EditForm class="mt-5" Model="@this" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+			<div class="mb-2">
+				<label class="text-sm text-gray-500">Username</label>
+				<InputText 
+					@bind-Value="Username" 
+					placeholder="john"
+					class="w-full p-2 border rounded mt-1" 
+				/>
+
+				@if (UsernameError != null)
+                {
+                    <span class="text-red-500 text-xs mt-1 block">@UsernameError</span>
+                }
+			</div>
+			<div class="mb-2">
+				<label class="text-sm text-gray-500">Password</label>
+				<InputText 
+					@bind-Value="Password" 
+					placeholder="********" 
+					type="password"                           
+					class="w-full p-2 border rounded mt-1" 
+				/>
+
+                @if (PasswordError != null)
+                {
+                    <span class="text-red-500 text-xs mt-1 block">@PasswordError</span>
+                }
+			</div>
+			@if (GeneralError != null)
+            {
+                <div class="text-red-500 text-sm my-3">@GeneralError</div>
+            }
+
+			<button type="submit" class="w-full py-2 text-white rounded flex justify-center items-center bg-gray-700 hover:bg-gray-950">Login</button>
+		</EditForm>
+
+		<p class="mt-4 text-center text-gray-400">Don't have an account? <a class="text-gray-900 font-medium" href="/register" data-discover="true">Register</a>
+		</p>
+	</div>
+</div>
