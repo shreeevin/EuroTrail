@@ -1,0 +1,209 @@
+@page "/analysis"
+@layout EuroTrail.Components.Layout.MainLayout
+@inject NavigationManager NavigationManager
+
+@code {
+    private bool isLoggedIn;
+    private EuroTrail.Models.User? currentUser;
+
+    private int allTransactionCount = 0;
+    private int incomeCount = 0;
+    private int expenseCount = 0;
+    private int debtCount = 0;
+    private int debtCompletedCount = 0;
+    private int debtPendingCount = 0;
+    private decimal incomeBalance = 0;
+    private decimal expenseBalance = 0;
+    private decimal debtBalance = 0;
+    private decimal totalBalance = 0;
+    private decimal totalDebtClearedBalance = 0;
+    private decimal totalDebtRemaningBalance = 0;
+
+    protected override Task OnInitializedAsync()
+    {
+        isLoggedIn = EuroTrail.Services.Session.GetInstance().IsLoggedIn();
+
+        if (!isLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+            return Task.CompletedTask; 
+        }
+
+        currentUser = EuroTrail.Services.AuthService.GetCurrentUser();
+
+        this.GetLatestStats();
+
+        return Task.CompletedTask; 
+    }
+
+    private void GetLatestStats()
+    {
+        int? userId = currentUser?.Id;
+        if (userId == null)
+        {
+            ResetStats();
+            return;
+        }
+
+        int GetTransactionCount(string type) => EuroTrail.Services.AnalysisService.GetTransactionCount(userId.Value, type);
+        decimal GetTransactionBalance(string type) => EuroTrail.Services.AnalysisService.GetTransactionBalance(userId.Value, type);
+
+        allTransactionCount = GetTransactionCount("all_transaction");
+        incomeCount = GetTransactionCount("income");
+        expenseCount = GetTransactionCount("expense");
+        debtCount = GetTransactionCount("debt");
+        debtCompletedCount = GetTransactionCount("debt_completed");
+        debtPendingCount = GetTransactionCount("debt_pending");
+
+        totalBalance = GetTransactionBalance("balance");
+        incomeBalance = GetTransactionBalance("income");
+        expenseBalance = GetTransactionBalance("expense");
+        debtBalance = GetTransactionBalance("debt");
+        totalDebtClearedBalance = GetTransactionBalance("debt_completed");
+        totalDebtRemaningBalance = GetTransactionBalance("debt_pending");
+    }
+
+    private void ResetStats()
+    {
+        allTransactionCount = 0;
+        incomeCount = 0;
+        expenseCount = 0;
+        debtCount = 0;
+        debtCompletedCount = 0;
+        debtPendingCount = 0;
+
+        totalBalance = 0;
+        incomeBalance = 0;
+        expenseBalance = 0;
+        debtBalance = 0;
+        totalDebtClearedBalance = 0;
+        totalDebtRemaningBalance = 0;
+    }
+
+}
+
+<div>
+    <div class="text-slate-50 mt-10">
+        <h1>Transactions Analysis</h1>
+    </div>
+
+    <div class="flex flex-col mt-8">
+        <h1 class="text-slate-50 text-bold">Balance</h1>
+        <div class="grid grid-cols-2 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full mt-3">
+            <div class="flex flerow justify-between items-center rounded-md py-2 px-4 border border-slate-700 text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:shadow-none active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none h-full w-full">
+                <div class="text-bold">
+                    Balance
+                </div>
+                <div class="p-2 rounded-md bg-black">
+                    @currentUser?.Currency @totalBalance
+                </div>
+            </div>
+            <div class="flex flex-row justify-between items-center rounded-md py-2 px-4 border border-slate-700 text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:shadow-none active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none h-full w-full">
+                <div class="text-bold">
+                    Income
+                </div>
+                <div class="p-2 rounded-md bg-green-700">
+                    @currentUser?.Currency @incomeBalance
+                </div>
+            </div>
+            <div class="flex flex-row justify-between items-center rounded-md py-2 px-4 border border-slate-700 text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:shadow-none active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none h-full w-full">
+                <div class="text-bold">
+                    Expense
+                </div>
+                <div class="p-2 rounded-md bg-orange-700">
+                    @currentUser?.Currency @expenseBalance
+                </div>
+            </div>
+            <div class="flex flex-row justify-between items-center rounded-md py-2 px-4 border border-slate-700 text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:shadow-none active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none h-full w-full">
+                <div class="text-bold">
+                    Debt
+                </div>
+                <div class="p-2 rounded-md bg-red-700">
+                    @currentUser?.Currency @debtBalance
+                </div>
+            </div>
+        </div>
+    </div>   
+
+    <div class="flex flex-col mt-8">
+        <h1 class="text-slate-50 text-bold">Debts</h1>
+        <div class="grid grid-cols-2 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full mt-3">
+            <div class="flex flex-row justify-between items-center rounded-md py-2 px-4 border border-slate-700 text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:shadow-none active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none h-full w-full">
+                <div class="text-bold">
+                    Cleared
+                </div>
+                <div class="p-2 px-4 rounded-md bg-green-700">
+                    @debtCompletedCount
+                </div>
+            </div>
+            <div class="flex flex-row justify-between items-center rounded-md py-2 px-4 border border-slate-700 text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:shadow-none active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none h-full w-full">
+                <div class="text-bold">
+                    Remaning
+                </div>
+                <div class="p-2 px-4 rounded-md bg-red-700">
+                    @debtPendingCount
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex flex-col mt-8">
+        <h1 class="text-slate-50 text-bold">Transactions</h1>
+        <div class="grid grid-cols-2 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full mt-3">
+            <div class="flex flerow justify-between items-center rounded-md py-2 px-4 border border-slate-700 text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:shadow-none active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none h-full w-full">
+                <div class="text-bold">
+                    All
+                </div>
+                <div class="p-2 px-4 rounded-md bg-black">
+                    @allTransactionCount
+                </div>
+            </div>
+            <div class="flex flex-row justify-between items-center rounded-md py-2 px-4 border border-slate-700 text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:shadow-none active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none h-full w-full">
+                <div class="text-bold">
+                    Income
+                </div>
+                <div class="p-2 px-4 rounded-md bg-green-700">
+                    @incomeCount
+                </div>
+            </div>
+            <div class="flex flex-row justify-between items-center rounded-md py-2 px-4 border border-slate-700 text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:shadow-none active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none h-full w-full">
+                <div class="text-bold">
+                    Expense
+                </div>
+                <div class="p-2 px-4 rounded-md bg-orange-700">
+                    @expenseCount
+                </div>
+            </div>
+            <div class="flex flex-row justify-between items-center rounded-md py-2 px-4 border border-slate-700 text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:shadow-none active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none h-full w-full">
+                <div class="text-bold">
+                    Debt
+                </div>
+                <div class="p-2 px-4 rounded-md bg-red-700">
+                    @debtCount
+                </div>
+            </div>
+        </div>
+    </div> 
+
+    <div class="flex flex-col mt-8 pb-8">
+        <h1 class="text-slate-50 text-bold">Debts Balance</h1>
+        <div class="grid grid-cols-2 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full mt-3">
+            <div class="flex flex-row justify-between items-center rounded-md py-2 px-4 border border-slate-700 text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:shadow-none active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none h-full w-full">
+                <div class="text-bold">
+                    Cleared
+                </div>
+                <div class="p-2 rounded-md bg-green-700">
+                    @currentUser?.Currency @totalDebtClearedBalance
+                </div>
+            </div>
+            <div class="flex flex-row justify-between items-center rounded-md py-2 px-4 border border-slate-700 text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:shadow-none active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none h-full w-full">
+                <div class="text-bold">
+                    Remaning
+                </div>
+                <div class="p-2 rounded-md bg-red-700">
+                    @currentUser?.Currency @totalDebtRemaningBalance
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

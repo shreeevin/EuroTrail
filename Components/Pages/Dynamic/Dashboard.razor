@@ -3,21 +3,21 @@
 @inject NavigationManager NavigationManager
 
 @code {
-    private string ActiveLink = "dashboard";
     private bool isLoggedIn;
     private EuroTrail.Models.User? currentUser;
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
         isLoggedIn = EuroTrail.Services.Session.GetInstance().IsLoggedIn();
 
         if (!isLoggedIn)
         {
             NavigationManager.NavigateTo("/login");
-            return; 
+            return Task.CompletedTask; 
         }
 
         currentUser = EuroTrail.Services.AuthService.GetCurrentUser();
+        return Task.CompletedTask; 
     }
 }
 

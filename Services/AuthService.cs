@@ -175,7 +175,7 @@ namespace EuroTrail.Services
                 return Task.FromResult(false);
             }
         }
-        public static bool UpdateOnboard(string name, string email, string phone)
+        public static Task<bool> UpdateOnboard(string name, string email, string phone)
         {
             string? username = Session.GetInstance().Username;
 
@@ -184,13 +184,14 @@ namespace EuroTrail.Services
                 if (IsEmailDuplicate(email, username))
                 {
                     Console.WriteLine("The email address is already in use by another account.");
-                    return false;
+                    return Task.FromResult(false);
+
                 }
 
                 if (IsPhoneDuplicate(phone, username))
                 {
                     Console.WriteLine("The phone number is already in use by another account.");
-                    return false;
+                    return Task.FromResult(false);
                 }
 
                 using (var connection = new SqliteConnection($"Data Source={DatabaseFilePath}"))
@@ -210,19 +211,19 @@ namespace EuroTrail.Services
                     var result = command.ExecuteNonQuery();
                     if (result > 0)
                     {
-                        return true;
+                        return Task.FromResult(true);
                     }
                     else
                     {
                         Console.WriteLine("There was a problem updating your details. Please try again.");
-                        return false;
+                        return Task.FromResult(true);
                     }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error updating onboard details: {ex.Message}");
-                return false;
+                return Task.FromResult(true);
             }
         }
 
@@ -477,7 +478,7 @@ namespace EuroTrail.Services
                 return false;
             }
         }
-        
+
         public static bool IsEmailDuplicate(string email, string? username)
         {
             try

@@ -2,14 +2,10 @@
 @inject NavigationManager NavigationManager
 
 @code {
-    [Parameter] public string? ActiveLink { get; set; }
-    [Parameter] public EventCallback<string> ActiveLinkChanged { get; set; }
+	public string CurrentPage = "dashboard";
 
-    private async Task SetActiveLink(string link)
-    {
-        ActiveLink = link;
-        await ActiveLinkChanged.InvokeAsync(link);
-    }
+	private string? ActiveClass = "flex items-center w-full p-3 leading-tight transition-all rounded-lg outline-none text-start hover:bg-blue-gray-50 hover:bg-gray-800 hover:text-blue-gray-900 focus:bg-blue-gray-50 focus:bg-opacity-80 focus:text-blue-gray-900 active:bg-blue-gray-50 active:bg-opacity-80 active:text-blue-gray-900 bg-gray-800";
+	private string? DefaultClass = "flex items-center w-full p-3 leading-tight transition-all rounded-lg outline-none text-start hover:bg-blue-gray-50 hover:bg-gray-800 hover:text-blue-gray-900 focus:bg-blue-gray-50 focus:bg-opacity-80 focus:text-blue-gray-900 active:bg-blue-gray-50 active:bg-opacity-80 active:text-blue-gray-900";
 
     private void HandelLogout()
     {
@@ -19,30 +15,39 @@
 }
 
 <div class="relative flex h-screen w-full max-w-[20rem] flex-col p-4 text-slate-50">
-	<div class="p-4 mb-2 flex gap-1 items-center">
+	<a href="/dashboard" class="p-4 mb-2 flex gap-1 items-center">
         <svg class="h-6 w-6" viewBox="0 0 220 200" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path fill-rule="evenodd" clip-rule="evenodd" d="M133.384 17.4786C135.223 18.3516 137.365 20.0386 138.144 21.2286C141.437 26.2566 208.844 175.179 208.844 177.427C208.844 178.783 207.944 180.793 206.844 181.893C204.935 183.802 203.511 183.893 175.421 183.893H145.997L143.032 181.398C141.401 180.025 138.783 175.956 137.214 172.355L134.362 165.808L125.353 166.451C109.61 167.574 91.5634 163.79 76.4694 156.199C72.6884 154.298 69.2834 153.114 68.9024 153.568C68.5214 154.022 65.5794 160.128 62.3634 167.137C59.1474 174.145 55.6444 180.67 54.5784 181.637C52.9184 183.141 50.1524 183.438 35.3064 183.707C18.9044 184.004 17.8604 183.909 15.9084 181.957C14.7734 180.822 13.8444 178.735 13.8444 177.319C13.8444 175.903 18.9884 163.513 25.2764 149.784L36.7074 124.824L31.1864 117.128C19.9704 101.496 13.2164 83.7846 12.1494 67.2086C11.1554 51.7576 15.1354 38.5246 23.7034 28.7896C29.7854 21.8806 37.2294 18.5176 50.8444 16.5296C53.3445 16.1645 70.6014 16.1036 91.6934 16.0286C124.827 15.9116 130.496 16.1086 133.384 17.4786ZM44.4734 25.6386C37.4864 27.9666 29.8284 35.3246 26.3004 43.1016C18.8864 59.4436 23.6934 86.0546 37.8164 106.852L42.0374 113.068L56.5734 81.2306C64.5684 63.7196 71.7944 48.6046 72.6324 47.6426C75.9394 43.8406 79.1994 45.3296 91.7254 56.3696C103.76 66.9766 104.844 68.2906 104.844 72.2786C104.844 73.5006 98.0794 89.2896 89.8104 107.367C78.7504 131.548 75.1084 140.438 76.0324 141.009C76.7224 141.435 80.4494 142.806 84.3154 144.055C98.3514 148.588 112.384 146.571 121.28 138.74C127.385 133.367 130.576 127.665 132.468 118.752C139.721 84.5876 108.637 37.2976 71.4894 25.9806C63.1724 23.4476 51.4954 23.2996 44.4734 25.6386Z" fill="white"/>
         </svg>
 		<h5 class="block font-sans text-xl antialiased font-semibold leading-snug tracking-normal text-blue-gray-900">EuroTrail</h5>
-	</div>
+	</a>
 	<nav class="flex min-w-[240px] flex-col gap-1 p-2 font-sans text-base font-normal text-blue-gray-700">
-		<div role="button" class="flex items-center w-full p-3 leading-tight transition-all rounded-lg outline-none text-start hover:bg-blue-gray-50 hover:bg-gray-800 hover:text-blue-gray-900 focus:bg-blue-gray-50 focus:bg-opacity-80 focus:text-blue-gray-900 active:bg-blue-gray-50 active:bg-opacity-80 active:text-blue-gray-900 bg-gray-800">
+		<a 
+            href="/dashboard" 
+            role="button" 
+            class="@(CurrentPage == "dashboard" ?  ActiveClass : DefaultClass)">
 			<div class="grid mr-4 place-items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
                     <path fill-rule="evenodd" d="M9.293 2.293a1 1 0 0 1 1.414 0l7 7A1 1 0 0 1 17 11h-1v6a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-6H3a1 1 0 0 1-.707-1.707l7-7Z" clip-rule="evenodd" />
                 </svg>
 			</div> Dashboard
-		</div>
+		</a>
 
-        <div role="button" class="flex items-center w-full p-3 leading-tight transition-all rounded-lg outline-none text-start hover:bg-blue-gray-50 hover:bg-gray-800 hover:text-blue-gray-900 focus:bg-blue-gray-50 focus:bg-opacity-80 focus:text-blue-gray-900 active:bg-blue-gray-50 active:bg-opacity-80 active:text-blue-gray-900">
-			<div class="grid mr-4 place-items-center">
+		<a 
+            href="/analysis" 
+            role="button" 
+            class="@(CurrentPage == "analysis" ?  ActiveClass : DefaultClass)">
+            <div class="grid mr-4 place-items-center">
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-5 h-5">
 					<path fill-rule="evenodd" d="M2.25 2.25a.75.75 0 000 1.5H3v10.5a3 3 0 003 3h1.21l-1.172 3.513a.75.75 0 001.424.474l.329-.987h8.418l.33.987a.75.75 0 001.422-.474l-1.17-3.513H18a3 3 0 003-3V3.75h.75a.75.75 0 000-1.5H2.25zm6.04 16.5l.5-1.5h6.42l.5 1.5H8.29zm7.46-12a.75.75 0 00-1.5 0v6a.75.75 0 001.5 0v-6zm-3 2.25a.75.75 0 00-1.5 0v3.75a.75.75 0 001.5 0V9zm-3 2.25a.75.75 0 00-1.5 0v1.5a.75.75 0 001.5 0v-1.5z" clip-rule="evenodd"></path>
 				</svg>
 			</div> Analysis
-		</div>
+		</a>
 
-		<div role="button" class="flex items-center w-full p-3 leading-tight transition-all rounded-lg outline-none text-start hover:bg-blue-gray-50 hover:bg-gray-800 hover:text-blue-gray-900 focus:bg-blue-gray-50 focus:bg-opacity-80 focus:text-blue-gray-900 active:bg-blue-gray-50 active:bg-opacity-80 active:text-blue-gray-900">
+		<a 
+            href="/analysis" 
+            role="button"  
+            class="@(CurrentPage == "analysis" ?  ActiveClass : DefaultClass)">
 			<div class="grid mr-4 place-items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
                     <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM9.763 9.51a2.25 2.25 0 0 1 3.828-1.351.75.75 0 0 0 1.06-1.06 3.75 3.75 0 0 0-6.38 2.252c-.033.307 0 .595.032.822l.154 1.077H8.25a.75.75 0 0 0 0 1.5h.421l.138.964a3.75 3.75 0 0 1-.358 2.208l-.122.242a.75.75 0 0 0 .908 1.047l1.539-.512a1.5 1.5 0 0 1 .948 0l.655.218a3 3 0 0 0 2.29-.163l.666-.333a.75.75 0 1 0-.67-1.342l-.667.333a1.5 1.5 0 0 1-1.145.082l-.654-.218a3 3 0 0 0-1.898 0l-.06.02a5.25 5.25 0 0 0 .053-1.794l-.108-.752H12a.75.75 0 0 0 0-1.5H9.972l-.184-1.29a1.863 1.863 0 0 1-.025-.45Z" clip-rule="evenodd" />
@@ -52,21 +57,27 @@
 					<span class="">14</span>
 				</div>
 			</div>
-		</div>
-		<div role="button" class="flex items-center w-full p-3 leading-tight transition-all rounded-lg outline-none text-start hover:bg-blue-gray-50 hover:bg-gray-800 hover:text-blue-gray-900 focus:bg-blue-gray-50 focus:bg-opacity-80 focus:text-blue-gray-900 active:bg-blue-gray-50 active:bg-opacity-80 active:text-blue-gray-900">
+		</a>
+		<a 
+            href="/profile" 
+            role="button"  
+            class="@(CurrentPage == "profile" ?  ActiveClass : DefaultClass)">
 			<div class="grid mr-4 place-items-center">
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-5 h-5">
 					<path fill-rule="evenodd" d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" clip-rule="evenodd"></path>
 				</svg>
 			</div> Profile
-		</div>
-		<div role="button" class="flex items-center w-full p-3 leading-tight transition-all rounded-lg outline-none text-start hover:bg-blue-gray-50 hover:bg-gray-800 hover:text-blue-gray-900 focus:bg-blue-gray-50 focus:bg-opacity-80 focus:text-blue-gray-900 active:bg-blue-gray-50 active:bg-opacity-80 active:text-blue-gray-900">
+		</a>
+		<a 
+            href="/analysis" 
+            role="button"  
+            class="@(CurrentPage == "setting" ?  ActiveClass : DefaultClass)">        
 			<div class="grid mr-4 place-items-center">
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-5 h-5">
 					<path fill-rule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 00-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 00-2.282.819l-.922 1.597a1.875 1.875 0 00.432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 000 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 00-.432 2.385l.922 1.597a1.875 1.875 0 002.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 002.28-.819l.923-1.597a1.875 1.875 0 00-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 000-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 00-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 00-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 00-1.85-1.567h-1.843zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" clip-rule="evenodd"></path>
 				</svg>
 			</div> Settings
-		</div>
+		</a>
 		<div @onclick="HandelLogout" role="button" class="flex items-center w-full p-3 leading-tight transition-all rounded-lg outline-none text-start hover:bg-red-700">
 			<div class="grid mr-4 place-items-center">
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-5 h-5">

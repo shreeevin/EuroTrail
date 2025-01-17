@@ -1,0 +1,187 @@
+@page "/profile"
+@layout EuroTrail.Components.Layout.MainLayout
+@inject NavigationManager NavigationManager
+
+@using EuroTrail.Helpers
+@using EuroTrail.Models
+
+@code {
+    private bool isLoggedIn;
+    private EuroTrail.Models.User? currentUser;
+
+    private string Name { get; set; } = string.Empty;
+    private string Email { get; set; } = string.Empty;
+    private string Phone { get; set; } = string.Empty;
+
+    private string? NameError { get; set; }
+    private string? EmailError { get; set; }
+    private string? PhoneError { get; set; }
+
+    private string? GeneralError { get; set; }
+
+    protected override Task OnInitializedAsync()
+    {
+        isLoggedIn = EuroTrail.Services.Session.GetInstance().IsLoggedIn();
+
+        if (!isLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+            return Task.CompletedTask; 
+        }
+
+        currentUser = EuroTrail.Services.AuthService.GetCurrentUser();
+
+        Name = currentUser?.Name ?? string.Empty;
+        Email = currentUser?.Email ?? string.Empty;
+        Phone = currentUser?.Phone ?? string.Empty;
+
+        return Task.CompletedTask; 
+    }
+
+    private void RestForm()
+    {
+        NameError = null;
+        EmailError = null;
+        PhoneError = null;
+        GeneralError = null;
+    }
+
+    private async Task HandleSubmit()
+    {
+        this.RestForm();
+
+        if (string.IsNullOrWhiteSpace(Name))
+        {
+            NameError = "Name is required.";
+        }
+        else if (Name.Length < 3)
+        {
+            NameError = "Name must be at least 3 characters long.";
+        }
+        else if (Name.Length > 24)
+        {
+            NameError = "Name can't be more then 24 characters long.";
+        }
+
+        if (string.IsNullOrWhiteSpace(Email))
+        {
+            EmailError = "Email is required.";
+        }
+        else if (!System.Text.RegularExpressions.Regex.IsMatch(Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        {
+            EmailError = "Invalid email address.";
+        }
+
+        if (string.IsNullOrWhiteSpace(Phone))
+        {
+            PhoneError = "Phone number is required.";
+        }
+        else if(Phone.Length < 10 || Phone.Length > 10)
+        {
+            PhoneError = "Phone number must be exactly 10 digits.";
+        }
+        else if (!long.TryParse(Phone, out _))
+        {
+            PhoneError = "Phone number must contain only digits.";
+        }
+        else
+        {
+            PhoneError = null;
+        }
+
+        if(NameError != null || EmailError != null || PhoneError != null)
+        {
+            return;
+        }
+
+        try
+        {
+            var updateSuccessful = await EuroTrail.Services.AuthService.UpdateOnboard(Name, Email, Phone);
+
+            if (updateSuccessful)
+            {
+                NavigationManager.NavigateTo("/dashboard");
+            }
+            else
+            {
+                GeneralError = "An error occurred during profile update.";
+            }
+        }
+        catch (Exception ex)
+        {
+            GeneralError = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            this.RestForm();
+        }
+    }
+}
+
+<div>
+    <div class="mt-10">
+        <h1 class="text-slate-50">Profile</h1>
+        <span class="text-sm text-slate-100">Update your profile details below.</span>
+    </div>
+
+    <EditForm Model="@this" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+    
+        <div class="flex flex-col gap-4 mt-5">
+            <div class="w-full max-w-sm min-w-[200px]">
+                <label class="block mb-2 text-sm text-slate-400">
+                Name
+                </label>
+                <InputText 
+                    @bind-Value="Name" 
+                    placeholder="John Doe"
+                    type="text"
+                    class="w-full bg-transparent placeholder:text-slate-400 text-slate-300 text-sm border border-slate-200 rounded-md px-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow"
+                />
+                @if (NameError != null)
+                {
+                    <span class="text-red-500 text-xs mt-1 block">@NameError</span>
+                }
+            </div>
+
+            <div class="w-full max-w-sm min-w-[200px]">
+                <label class="block mb-2 text-sm text-slate-400">
+                Email
+                </label>
+                <InputText 
+                    @bind-Value="Email" 
+                    placeholder="hello@john.com"
+                    type="email"
+                    class="w-full bg-transparent placeholder:text-slate-400 text-slate-300 text-sm border border-slate-200 rounded-md px-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow"
+                />
+                @if (EmailError != null)
+                {
+                    <span class="text-red-500 text-xs mt-1 block">@EmailError</span>
+                }
+            </div>
+            
+            <div class="w-full max-w-sm min-w-[200px]">
+                <label class="block mb-2 text-sm text-slate-400">
+                Phone
+                </label>
+                <InputText 
+                    @bind-Value="Phone" 
+                    placeholder="9800000000"
+                    type="text"
+                    class="w-full bg-transparent placeholder:text-slate-400 text-slate-300 text-sm border border-slate-200 rounded-md px-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow"
+                />
+                @if (PhoneError != null)
+                {
+                    <span class="text-red-500 text-xs mt-1 block">@PhoneError</span>
+                }            
+            </div>
+            
+            <div class="w-full max-w-sm min-w-[200px]">
+                <button class="w-full rounded-md bg-slate-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-slate-700 focus:shadow-none active:bg-slate-700 hover:bg-slate-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" type="submit" >
+                Save
+                </button>        
+            </div>
+        </div> 
+    </EditForm>
+</div>

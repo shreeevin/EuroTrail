@@ -10,11 +10,18 @@
     private string? PasswordError { get; set; }
     private string? GeneralError { get; set; }
 
+	private bool IsInitiate = false;
+
     private async Task HandleLogin()
     {
         UsernameError = null;
         PasswordError = null;
         GeneralError = null;
+
+		if(IsInitiate)
+		{
+			return;
+		}
 
         if (string.IsNullOrWhiteSpace(Username))
         {
@@ -38,10 +45,12 @@
 
         try
         {
+			IsInitiate = true;
             var loginSuccessful = await EuroTrail.Services.AuthService.Login(Username, Password);
 
             if (loginSuccessful)
             {
+				IsInitiate = false;
                 NavigationManager.NavigateTo("/dashboard");
             }
             else
@@ -52,7 +61,12 @@
         catch (Exception ex)
         {
             GeneralError = $"An error occurred: {ex.Message}";
-        }
+			IsInitiate = false;
+        } 
+		finally
+		{
+			IsInitiate = false;
+		}
     }
 }
 <div class="flex justify-center items-center flex-col gap-2 h-screen bg-gray-950">
