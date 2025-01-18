@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+::deep(.input-slate::-webkit-calendar-picker-indicator) {
+    color: #f8fafc; 
+    filter: invert(100%) brightness(150%);
+}
+
+::deep(.input-slate:focus) {
+    outline: none;
+    box-shadow: none;
+}
+
+::deep(.input-slate:focus-visible) {
+    border-color: #94a3b8;
+}

@@ -24,7 +24,7 @@
         Currencies = CurrencyHelper.GetCurrencies();
     }
 
-    private async Task HandleSubmit()
+    private void HandleSubmit()
     {
         UsernameError = null;
         PasswordError = null;
@@ -51,7 +51,7 @@
 
         try
         {
-            var registrationSuccessful = await EuroTrail.Services.AuthService.Register(Username, Password, SelectedCurrencyCode);
+            var registrationSuccessful = EuroTrail.Services.AuthService.Register(Username, Password, SelectedCurrencyCode);
 
             if (registrationSuccessful)
             {
@@ -83,6 +83,7 @@
                     <InputText 
 						@bind-Value="Username" 
 						placeholder="john"
+                        autocomplete="off"
 						class="w-full p-2 border rounded mt-1" 
 					/>
                     @if (UsernameError != null)
@@ -97,6 +98,7 @@
 						@bind-Value="Password" 
 						placeholder="********" 
 						type="password" 
+                        autocomplete="off"
                     	class="w-full p-2 border rounded mt-1" 
 					/>
                     @if (PasswordError != null)

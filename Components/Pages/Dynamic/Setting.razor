@@ -1,0 +1,164 @@
+@page "/setting"
+@layout EuroTrail.Components.Layout.MainLayout
+@inject NavigationManager NavigationManager
+
+@using EuroTrail.Helpers
+@using EuroTrail.Models
+
+@code {
+    private bool isLoggedIn;
+    private EuroTrail.Models.User? currentUser;
+
+    private string OldPassword { get; set; } = string.Empty;
+    private string NewPassword { get; set; } = string.Empty;
+
+    private string? OldPasswordError { get; set; }
+    private string? NewPasswordError { get; set; }
+
+    private string? GeneralError { get; set; }
+
+    protected override Task OnInitializedAsync()
+    {
+        isLoggedIn = EuroTrail.Services.Session.GetInstance().IsLoggedIn();
+
+        if (!isLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+            return Task.CompletedTask; 
+        }
+
+        currentUser = EuroTrail.Services.AuthService.GetCurrentUser();
+        return Task.CompletedTask; 
+    }
+
+    private void RestForm()
+    {
+        OldPasswordError = null;
+        NewPasswordError = null;
+        GeneralError = null;
+    }
+
+    private void HandleSubmit()
+    {
+        this.RestForm();
+
+        if (string.IsNullOrWhiteSpace(OldPassword))
+        {
+            OldPasswordError = "Old Password is required.";
+        }
+        else if (OldPassword.Length < 6)
+        {
+            OldPasswordError = "Password must be at least 6 characters long.";
+        }
+        else if (OldPassword.Length > 24)
+        {
+            OldPasswordError = "Password can't be more then 24 characters long.";
+        }
+
+        if (string.IsNullOrWhiteSpace(NewPassword))
+        {
+            NewPasswordError = "New Password is required.";
+        }
+        else if (NewPassword.Length < 6)
+        {
+            NewPasswordError = "Password must be at least 6 characters long.";
+        }
+        else if (NewPassword.Length > 24)
+        {
+            NewPasswordError = "Password can't be more then 24 characters long.";
+        }
+
+
+        if(OldPasswordError != null || NewPasswordError != null)
+        {
+            return;
+        }
+
+        try
+        {
+            bool updateSuccessful = EuroTrail.Services.AuthService.UpdatePassword(OldPassword, NewPassword);
+
+            if (updateSuccessful)
+            {
+                NavigationManager.NavigateTo("/dashboard");
+            }
+            else
+            {
+                GeneralError = "An error occurred during password update.";
+            }
+        }
+        catch (Exception ex)
+        {
+            GeneralError = $"An error occurred: {ex.Message}";
+        }
+    }
+}
+
+<div>
+    <div class="mt-10">
+        <h1 class="text-slate-50">Password</h1>
+        <span class="text-sm text-slate-100">Update your account password below.</span>
+    </div>
+
+    <EditForm Model="@this" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+    
+        <div class="flex flex-col gap-4 mt-5">
+            <div class="w-full max-w-sm min-w-[200px]">
+                <label class="block mb-2 text-sm text-slate-400">
+                OldPassword
+                </label>
+                <InputText 
+                    @bind-Value="OldPassword" 
+                    placeholder="********"
+                    type="password"
+                    autocomplete="off"
+                    class="w-full bg-transparent placeholder:text-slate-400 text-slate-300 text-sm border border-slate-200 rounded-md px-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow"
+                />
+                @if (OldPasswordError != null)
+                {
+                    <span class="text-red-500 text-xs mt-1 block">@OldPasswordError</span>
+                }
+            </div>
+            
+            <div class="w-full max-w-sm min-w-[200px]">
+                <div class="relative">
+                    <label class="block mb-2 text-sm text-slate-400">
+                        New Password
+                    </label>
+                    <InputText
+                        @bind-Value="NewPassword" 
+                        placeholder="********"
+                        type="password"
+                        autocomplete="off"
+                        class="w-full pl-3 pr-3 py-2 bg-transparent placeholder:text-slate-400 text-slate-600 text-sm border border-slate-200 rounded-md transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow" 
+                    />
+                    <p class="flex items-start mt-2 text-xs text-slate-400">
+                        
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 mr-1.5">
+                            <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" />
+                        </svg>
+                    
+                        Use at least 8 characters, one uppercase, one lowercase and one number.
+                    </p> 
+                    @if (NewPasswordError != null)
+                    {
+                        <span class="text-red-500 text-xs mt-1 block">@NewPasswordError</span>
+                    }      
+                </div>
+            </div>
+
+            @if (GeneralError != null)
+            {
+                <span class="text-red-500 text-xs my-1 block">@GeneralError</span>
+            } 
+            
+            <div class="w-full max-w-sm min-w-[200px]">
+                <button class="w-full rounded-md bg-slate-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-slate-700 focus:shadow-none active:bg-slate-700 hover:bg-slate-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" type="submit" >
+                Save
+                </button>        
+            </div>
+        </div> 
+    </EditForm>
+</div>

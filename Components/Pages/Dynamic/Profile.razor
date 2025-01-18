@@ -19,6 +19,9 @@
 
     private string? GeneralError { get; set; }
 
+    private bool isDuplicateEmail = true;
+    private bool isDuplicatePhone = true;
+
     protected override Task OnInitializedAsync()
     {
         isLoggedIn = EuroTrail.Services.Session.GetInstance().IsLoggedIn();
@@ -46,7 +49,7 @@
         GeneralError = null;
     }
 
-    private async Task HandleSubmit()
+    private void HandleSubmit()
     {
         this.RestForm();
 
@@ -89,6 +92,19 @@
             PhoneError = null;
         }
 
+        isDuplicateEmail = EuroTrail.Services.AuthService.IsEmailDuplicate(Email, currentUser?.Username);
+        isDuplicatePhone = EuroTrail.Services.AuthService.IsPhoneDuplicate(Phone, currentUser?.Username);
+
+        if(isDuplicateEmail)
+        {
+            EmailError = $"Email {Email} has been already used. Please try again with another email.";
+        }
+
+        if(isDuplicatePhone)
+        {
+            PhoneError = $"Phone {Phone} has been already used. Please try again with another number.";
+        }
+
         if(NameError != null || EmailError != null || PhoneError != null)
         {
             return;
@@ -96,7 +112,7 @@
 
         try
         {
-            var updateSuccessful = await EuroTrail.Services.AuthService.UpdateOnboard(Name, Email, Phone);
+            var updateSuccessful = EuroTrail.Services.AuthService.UpdateOnboard(Name, Email, Phone);
 
             if (updateSuccessful)
             {
@@ -110,10 +126,6 @@
         catch (Exception ex)
         {
             GeneralError = $"An error occurred: {ex.Message}";
-        }
-        finally
-        {
-            this.RestForm();
         }
     }
 }
@@ -137,6 +149,7 @@
                     @bind-Value="Name" 
                     placeholder="John Doe"
                     type="text"
+                    autocomplete="off"
                     class="w-full bg-transparent placeholder:text-slate-400 text-slate-300 text-sm border border-slate-200 rounded-md px-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow"
                 />
                 @if (NameError != null)
@@ -153,6 +166,7 @@
                     @bind-Value="Email" 
                     placeholder="hello@john.com"
                     type="email"
+                    autocomplete="off"
                     class="w-full bg-transparent placeholder:text-slate-400 text-slate-300 text-sm border border-slate-200 rounded-md px-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow"
                 />
                 @if (EmailError != null)
@@ -169,6 +183,7 @@
                     @bind-Value="Phone" 
                     placeholder="9800000000"
                     type="text"
+                    autocomplete="off"
                     class="w-full bg-transparent placeholder:text-slate-400 text-slate-300 text-sm border border-slate-200 rounded-md px-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow"
                 />
                 @if (PhoneError != null)
@@ -176,6 +191,11 @@
                     <span class="text-red-500 text-xs mt-1 block">@PhoneError</span>
                 }            
             </div>
+
+            @if (GeneralError != null)
+            {
+                <span class="text-red-500 text-xs my-1 block">@GeneralError</span>
+            } 
             
             <div class="w-full max-w-sm min-w-[200px]">
                 <button class="w-full rounded-md bg-slate-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-slate-700 focus:shadow-none active:bg-slate-700 hover:bg-slate-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" type="submit" >

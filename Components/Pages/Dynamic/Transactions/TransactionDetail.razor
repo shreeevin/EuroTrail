@@ -1,0 +1,252 @@
+@page "/transaction-detail/{id:int}" 
+@layout EuroTrail.Components.Layout.MainLayout
+@inject NavigationManager NavigationManager
+
+@code {
+    [Parameter] 
+    public int id { get; set; } = 0;
+    private bool isLoggedIn;
+    private EuroTrail.Models.User? currentUser;
+    private EuroTrail.Models.Transaction? TransactionData;
+
+    private string? ErrorMessage { get; set; }
+    private DateTime LastErrorTime;
+
+    protected override void OnInitialized()
+    {
+        if (id == 0)
+        {
+            NavigationManager.NavigateTo("/transactions");
+        }
+
+        isLoggedIn = EuroTrail.Services.Session.GetInstance().IsLoggedIn();
+
+        if (!isLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+        }
+
+        currentUser = EuroTrail.Services.AuthService.GetCurrentUser();
+        this.GetTransactionDetail();
+    }
+    private void GetTransactionDetail()
+    {
+        int? userId = currentUser?.Id;
+        if (userId == null)
+        {
+            TransactionData = new EuroTrail.Models.Transaction();
+            return;
+        }
+
+        var transactionDetailInfo = EuroTrail.Services.TransactionService.GetTransactionById(
+            transactionId: id, 
+            userId: (int)userId
+        );
+
+        TransactionData = transactionDetailInfo;
+    }
+
+    private void ClearDebt()
+    {
+        ErrorMessage = "asdsa";
+    }
+
+    private void DeleteTransaction()
+    {
+        int? userId = currentUser?.Id;
+        int? transactionId = TransactionData?.Id;
+        if (userId == null || transactionId == null)
+        {
+            TransactionData = new EuroTrail.Models.Transaction();
+            return;
+        }
+
+        var balance = EuroTrail.Services.AuthService.GetWalletBalance((int)userId);
+
+        if (TransactionData?.Scope == "income" && TransactionData?.Amount > balance)
+        {
+            ErrorMessage = "The transaction could not be deleted. Due to the insufficent balance for expense.";
+            
+            LastErrorTime = DateTime.Now;
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(5000);
+                if ((DateTime.Now - LastErrorTime).TotalSeconds >= 5)
+                {
+                    await InvokeAsync(() => ResetErrorMessage());
+                }
+            });
+
+            return;
+        }
+
+
+        var (isDeleted, returnedMessage) = EuroTrail.Services.TransactionService.DeleteTransaction(
+            transactionId: (int)transactionId,
+            userId: (int)userId
+        );
+
+        if (isDeleted)
+        {
+            NavigationManager.NavigateTo("/transactions");
+        }
+        else
+        {
+            ErrorMessage = returnedMessage;
+            LastErrorTime = DateTime.Now;
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(5000);
+                if ((DateTime.Now - LastErrorTime).TotalSeconds >= 5)
+                {
+                    await InvokeAsync(() => ResetErrorMessage());
+                }
+            });
+        }
+    }
+
+    private void ResetErrorMessage()
+    {
+        ErrorMessage = null;
+        StateHasChanged();
+    }
+
+}
+
+<div class="mb-8 pb-8">
+    <div class="relative flex flex-col w-full h-full text-slate-200 bg-gray-800 shadow-md rounded-xl bg-clip-border my-8">
+        <div class="relative mx-4 mt-4 overflow-hidden text-slate-200 bg-gray-800 rounded-none bg-clip-border">
+            <div class="flex items-center justify-between gap-8 mb-8">
+                <div>
+                    <h5 class="block font-sans text-xl antialiased font-semibold leading-snug tracking-normal text-slate-100"> Transaction Detail </h5>
+                    <p class="block mt-1 font-sans text-base antialiased font-normal leading-relaxed text-slate-200"> See information about transaction </p>
+                </div>
+                <div class="flex flex-col gap-2 shrink-0 sm:flex-row">
+                    <a href="/analysis" class="select-none rounded-lg border border-slate-100 py-2 px-4 text-center align-middle font-sans text-xs font-bold uppercase text-slate-100 transition-all hover:opacity-75 focus:ring focus:ring-gray-300 active:opacity-[0.85] disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" type="button"> View Analysis </a>
+                    <button class="flex select-none items-center gap-3 rounded-lg bg-gray-900 py-2 px-4 text-center align-middle font-sans text-xs font-bold uppercase text-white shadow-md shadow-gray-900/10 transition-all hover:shadow-lg hover:shadow-gray-900/20 focus:opacity-[0.85] focus:shadow-none active:opacity-[0.85] active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" type="button">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" stroke-width="2" class="w-4 h-4">
+                            <path d="M6.25 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM3.25 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM19.75 7.5a.75.75 0 00-1.5 0v2.25H16a.75.75 0 000 1.5h2.25v2.25a.75.75 0 001.5 0v-2.25H22a.75.75 0 000-1.5h-2.25V7.5z"></path>
+                        </svg> Add transaction </button>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-8 mb-8">
+                <div>
+                    <h5 class="block font-sans text-md antialiased font-semibold leading-snug tracking-normal text-slate-100"> @currentUser?.Name</h5>
+                    <span class="block mt-1 font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">@currentUser?.Email</span>
+                    <span class="block font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">@currentUser?.Phone</span>
+                </div>
+
+                <div>
+                    <h5 class="block font-sans text-md antialiased font-semibold leading-snug tracking-normal text-slate-100"> @("EURO" + TransactionData?.Id.ToString().PadLeft(4, '0'))</h5>
+                    <span class="block mt-1 font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">@TransactionData?.Tnx</span>
+                    <span class="block font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">Completed on @TransactionData?.CreatedAt.ToString("MMM dd, yyyy")</span>
+                </div>
+
+                <div>
+                    <h5 class="block font-sans text-md antialiased font-semibold leading-snug tracking-normal text-slate-100">Detail</h5>
+                    
+                    
+                    <div class="flex justify-between w-full py-2 border-b border-slate-50 border-opacity-5">
+                        <span class="block mt-1 font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">Scope</span>
+                        <span class="block font-sans text-xs antialiased font-normal leading-relaxed text-slate-200 capitalize">
+                            @(TransactionData?.Scope?.Substring(0, 1).ToUpper() + TransactionData?.Scope?.Substring(1)?.ToLower())
+                        </span>
+                    </div>
+                    <div class="flex justify-between w-full py-2 border-b border-slate-50 border-opacity-5">
+                        <span class="block mt-1 font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">Type</span>
+                        <span class="block font-sans text-xs antialiased font-normal leading-relaxed text-slate-200 capitalize">
+                            @(TransactionData?.Type?.Substring(0, 1).ToUpper() + TransactionData?.Type?.Substring(1)?.ToLower())
+                        </span>
+                    </div>
+                    <div class="flex justify-between w-full py-2 border-b border-slate-50 border-opacity-5">
+                        <span class="block mt-1 font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">Source</span>
+                        <span class="block font-sans text-xs antialiased font-normal leading-relaxed text-slate-200 capitalize">@(EuroTrail.Helpers.SourceHelper.GetSourceNameByCode(TransactionData?.Source, TransactionData?.Scope))</span>
+                    </div>
+                    <div class="flex justify-between w-full py-2 border-b border-slate-50 border-opacity-5">
+                        <span class="block mt-1 font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">Status</span>
+                        <span class="block font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">
+                            @(TransactionData?.Status?.Substring(0, 1).ToUpper() + TransactionData?.Status?.Substring(1)?.ToLower())
+                        </span>
+                    </div>
+                    <div class="flex justify-between w-full py-2 border-b border-slate-50 border-opacity-5">
+                        <span class="block mt-1 font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">Date</span>
+                        <span class="block font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">@TransactionData?.CreatedAt.ToString("MMM dd, yyyy")</span>
+                    </div>
+                    <div class="flex justify-between w-full py-2 border-b border-slate-50 border-opacity-5">
+                        <span class="block mt-1 font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">Currency</span>
+                        <span class="block font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">@currentUser?.Currency</span>
+                    </div>
+                    <div class="flex justify-between w-full py-2 border-b border-slate-50 border-opacity-5">
+                        <span class="block mt-1 font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">Amount</span>
+                        <span class="block font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">@TransactionData?.Amount</span>
+                    </div>
+                    <div class="flex justify-between w-full py-2 border-none border-slate-50 border-opacity-5">
+                        <span class="block mt-1 font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">Fee</span>
+                        <span class="block font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">@TransactionData?.Fee</span>
+                    </div>
+                </div>
+
+                @if (TransactionData?.Tags?.Any() == true)
+                {
+                    <div>
+                        <h5 class="block font-sans text-md antialiased font-semibold leading-snug tracking-normal text-slate-100"> Tags</h5>
+                        <div class="flex gap-1 mt-2">
+                            @foreach (var tag in TransactionData.Tags)
+                            {
+                                <span class="px-2 py-1 bg-transparent text-slate-50 border border-text-slate-50 text-xs font-semibold rounded-md">
+                                    @tag
+                                </span>
+                            }
+                        </div>
+                    </div>
+                }   
+
+                @if (!string.IsNullOrWhiteSpace(TransactionData?.Note))
+                {
+                    <div class="w-full min-w-[200px]">
+                        <h5 class="block font-sans text-md antialiased font-semibold leading-snug tracking-normal text-slate-100">Note</h5>
+                        <span class="block font-sans text-xs antialiased font-normal leading-relaxed text-slate-200">@TransactionData.Note</span>
+                    </div>
+                }
+
+            </div>
+
+            @if (ErrorMessage != null)
+            {
+                <div role="alert"
+                     class="my-2 relative flex justify-between w-full p-3 text-sm text-white bg-slate-600 rounded-md"
+                     id="alert">
+                    <div class="flex gap-2 items-start w-full pr-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0M3.124 7.5A8.969 8.969 0 0 1 5.292 3m13.416 0a8.969 8.969 0 0 1 2.168 4.5" />
+                        </svg>
+
+                        <span class="w-full break-words">
+                            @ErrorMessage
+                        </span>
+                    </div>
+
+                    <button @onclick="ResetErrorMessage" class="flex items-center justify-center transition-all px-2 h-8 rounded-md text-white hover:bg-white/10 active:bg-white/10 absolute top-1.5 right-1.5" type="button">
+                        Close
+                    </button>
+                </div>
+            }
+
+            <div class="flex flex-row mt-8 mb-4 w-full">
+                <button class="rounded-md bg-green-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-green-700 focus:shadow-none active:bg-green-700 hover:bg-green-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" type="button">
+                    Edit
+                </button>
+                @if (TransactionData?.Scope == "debt")
+                {
+                    <button class="rounded-md bg-orange-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-orange-700 focus:shadow-none active:bg-orange-700 hover:bg-orange-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none ml-2" type="button">
+                        Clear Debt
+                    </button>
+                }
+                <button @onclick="DeleteTransaction" class="rounded-md bg-red-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-red-700 focus:shadow-none active:bg-red-700 hover:bg-red-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none ml-2" type="button">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

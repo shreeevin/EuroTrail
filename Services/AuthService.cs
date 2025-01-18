@@ -64,14 +64,14 @@ namespace EuroTrail.Services
             return null;
         }
 
-        public static Task<bool> Register(string username, string password, string currency)
+        public static bool Register(string username, string password, string currency)
         {
             try
             {
                 if (IsUsernameDuplicate(username))
                 {
                     Console.WriteLine($"Oops! we have some problem here, seems like user with username ({username}) already exists.");
-                    return Task.FromResult(false);
+                    return false;
                 }
 
                 string hashedPassword = AuthHelper.GenerateHash(password);
@@ -93,14 +93,14 @@ namespace EuroTrail.Services
                     var result = command.ExecuteNonQuery();
                     if (result > 0){
                         Session.GetInstance().LogIn(username);
-                        return Task.FromResult(true);
+                        return true;
 
                     } else {
                         Console.WriteLine(
                             "Oops! we have some problem here, seems like invalid username or password." 
                         );                        
 
-                        return Task.FromResult(false);
+                        return false;
                     }
 
                 }
@@ -109,11 +109,11 @@ namespace EuroTrail.Services
             {
                 Console.WriteLine($"Error during registration: {ex.Message}");
 
-                return Task.FromResult(false);
+                return false;
             }
         }
 
-        public static Task<bool> Login(string username, string password)
+        public static bool Login(string username, string password)
         {
             try
             {
@@ -141,13 +141,13 @@ namespace EuroTrail.Services
                                     $"Oops! we have some problem here, seems like username {username} is blocked."
                                 );
 
-                                return Task.FromResult(false);
+                                return false;
                             }
 
                             if (AuthHelper.CheckPassword(password, hashedPassword))
                             {
                                 Session.GetInstance().LogIn(username);
-                                return Task.FromResult(true);
+                                return true;
                             }
                             else
                             {
@@ -155,7 +155,7 @@ namespace EuroTrail.Services
                                     "Oops! we have some problem here, seems like invalid username or password."
                                 );
 
-                                return Task.FromResult(false);
+                                return false;
                             }
                         }
                         else
@@ -164,7 +164,7 @@ namespace EuroTrail.Services
                                 $"Oops! User not found with username {username}. Please try creating EuroTrail account."
                             );
 
-                            return Task.FromResult(false);
+                            return false;
                         }
                     }
                 }
@@ -172,10 +172,10 @@ namespace EuroTrail.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"Error during login: {ex.Message}");
-                return Task.FromResult(false);
+                return false;
             }
         }
-        public static Task<bool> UpdateOnboard(string name, string email, string phone)
+        public static bool UpdateOnboard(string name, string email, string phone)
         {
             string? username = Session.GetInstance().Username;
 
@@ -184,14 +184,14 @@ namespace EuroTrail.Services
                 if (IsEmailDuplicate(email, username))
                 {
                     Console.WriteLine("The email address is already in use by another account.");
-                    return Task.FromResult(false);
+                    return false;
 
                 }
 
                 if (IsPhoneDuplicate(phone, username))
                 {
                     Console.WriteLine("The phone number is already in use by another account.");
-                    return Task.FromResult(false);
+                    return false;
                 }
 
                 using (var connection = new SqliteConnection($"Data Source={DatabaseFilePath}"))
@@ -211,19 +211,19 @@ namespace EuroTrail.Services
                     var result = command.ExecuteNonQuery();
                     if (result > 0)
                     {
-                        return Task.FromResult(true);
+                        return true;
                     }
                     else
                     {
                         Console.WriteLine("There was a problem updating your details. Please try again.");
-                        return Task.FromResult(true);
+                        return false;
                     }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error updating onboard details: {ex.Message}");
-                return Task.FromResult(true);
+                return true;                
             }
         }
 

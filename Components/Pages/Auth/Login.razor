@@ -12,7 +12,7 @@
 
 	private bool IsInitiate = false;
 
-    private async Task HandleLogin()
+    private void HandleLogin()
     {
         UsernameError = null;
         PasswordError = null;
@@ -46,7 +46,7 @@
         try
         {
 			IsInitiate = true;
-            var loginSuccessful = await EuroTrail.Services.AuthService.Login(Username, Password);
+            var loginSuccessful = EuroTrail.Services.AuthService.Login(Username, Password);
 
             if (loginSuccessful)
             {
@@ -83,6 +83,7 @@
 				<InputText 
 					@bind-Value="Username" 
 					placeholder="john"
+                    autocomplete="off"
 					class="w-full p-2 border rounded mt-1" 
 				/>
 
@@ -96,7 +97,8 @@
 				<InputText 
 					@bind-Value="Password" 
 					placeholder="********" 
-					type="password"                           
+					type="password"     
+                    autocomplete="off"
 					class="w-full p-2 border rounded mt-1" 
 				/>
 
@@ -110,7 +112,12 @@
                 <div class="text-red-500 text-sm my-3">@GeneralError</div>
             }
 
-			<button type="submit" class="w-full py-2 text-white rounded flex justify-center items-center bg-gray-700 hover:bg-gray-950">Login</button>
+			<button 
+                type="submit" 
+                class="w-full py-2 text-white rounded flex justify-center items-center bg-gray-700 hover:bg-gray-950"
+                >
+                Login
+            </button>
 		</EditForm>
 
 		<p class="mt-4 text-center text-gray-400">Don't have an account? <a class="text-gray-900 font-medium" href="/register" data-discover="true">Register</a>
