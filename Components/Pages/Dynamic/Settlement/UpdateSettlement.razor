@@ -1,0 +1,527 @@
+@page "/settlement-update/{id:int}" 
+@layout EuroTrail.Components.Layout.MainLayout
+@inject NavigationManager NavigationManager
+
+@code {
+    [Parameter] 
+    public int id { get; set; } = 0;
+
+    private bool isLoggedIn;
+    private EuroTrail.Models.User? currentUser;
+
+    private string Scope { get; set; } = string.Empty;
+    private string Amount { get; set; } = string.Empty;
+    private string Source { get; set; } = "default";
+    private string Tag { get; set; } = string.Empty;
+    private string Note { get; set; } = string.Empty;
+
+    private string? AmountError { get; set; }
+    private string? SourceError { get; set; }
+    private string? TagError { get; set; }
+    private string? NoteError { get; set; }
+
+    private string? GeneralError { get; set; }
+    private DateTime LastErrorTime;
+
+    private string GlobalDefaut = "default";
+
+    private List<EuroTrail.Models.Source> SystemSources = new();
+
+    private List<string> Tags = new List<string>();
+
+    private EuroTrail.Models.Transaction? TransactionData;
+
+    protected override void OnInitialized()
+    {
+        isLoggedIn = EuroTrail.Services.Session.GetInstance().IsLoggedIn();
+
+        if (!isLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+        }
+        else
+        {
+            this.isUserConfigured();
+        }
+
+        currentUser = EuroTrail.Services.AuthService.GetCurrentUser();
+
+        this.GetTransactionDetail();
+    }
+
+    private void GetTransactionDetail()
+    {
+        int? userId = currentUser?.Id;
+        if (userId == null)
+        {
+            TransactionData = new EuroTrail.Models.Transaction();
+            return;
+        }
+
+        var transactionDetailInfo = EuroTrail.Services.TransactionService.GetTransactionById(
+            transactionId: id, 
+            userId: (int)userId
+        );
+
+        TransactionData = transactionDetailInfo;
+
+        this.PrepareFields();
+    }
+
+    private void isUserConfigured()
+    {
+        bool isConfigured = EuroTrail.Services.AuthService.IsConfigured();
+
+        if (!isConfigured)
+        {
+            NavigationManager.NavigateTo("/profile");
+        }
+    }
+
+    private void PrepareFields()
+    {
+        Scope = TransactionData?.Scope ?? string.Empty; 
+        Amount = TransactionData?.Amount.ToString() ?? string.Empty; ;
+        Tags = TransactionData?.Tags ?? new List<string>();
+        Note = TransactionData?.Note ?? string.Empty;
+        Source = TransactionData?.Source ?? string.Empty;
+
+        SystemSources = EuroTrail.Helpers.SourceHelper.GetSources(Scope);
+    }
+
+    private void RemoveTag(string tag)
+    {
+        TagError = string.Empty;
+
+        if (!Tags.Contains(tag))
+        {
+            Tag = string.Empty;
+            TagError = $"Tag ({tag}) ain't there to delete. Please try a different one.";
+
+            return;
+        }
+
+        Tags.Remove(tag);
+        Tag = string.Empty;
+    }
+
+    private void AddNewTag()
+    {
+        TagError = string.Empty;
+
+        if (string.IsNullOrEmpty(Tag))
+        {
+            Tag = string.Empty;
+            TagError = "Tag cannot be empty. Please enter a valid tag.";
+
+            return;
+        }
+
+        if (Tags.Contains(Tag))
+        {
+            Tag = string.Empty;
+            TagError = "Tag already exists. Please try a different one.";
+
+            return;
+        }
+
+        if (Tag.Length > 10)
+        {
+            Tag = string.Empty;
+            TagError = "Tag cannot exceed 10 characters. Please enter a shorter tag.";
+
+            return;
+        }
+
+        if (Tags.Count >= 5)
+        {
+            Tag = string.Empty;
+            TagError = "You can only add up to 5 tags.";
+
+            return;
+        }
+
+        Tags.Add(Tag);
+        Tag = string.Empty;
+    }
+
+    private void HandleSubmit()
+    {
+        int? userId = currentUser?.Id;
+        int? transactionTd = TransactionData?.Id;
+
+        if (userId == null || transactionTd == null)
+        {
+            return;
+        }
+
+        AmountError = null;
+        SourceError = null;
+        TagError = null;
+        NoteError = null;
+
+        bool isValid = true;
+        decimal parsedAmount = 0;
+
+        if (string.IsNullOrWhiteSpace(Amount))
+        {
+            AmountError = "Amount is required.";
+            isValid = false;
+        }
+        else if (!decimal.TryParse(Amount, out parsedAmount) || parsedAmount <= 0)
+        {
+            AmountError = "Amount must be a positive integer.";
+            isValid = false;
+        }
+
+        if (Source == "default")
+        {
+            SourceError = "Please select the source.";
+            isValid = false;
+        }
+        else if (!SystemSources.Any(s => s.Code == Source)) 
+        {
+            SourceError = "Source must exist in the system sources.";
+            isValid = false;
+        }
+
+        if (!string.IsNullOrEmpty(Note) && Note.Length > 64)
+        {
+            NoteError = "Note cannot exceed 64 characters.";
+            isValid = false;
+        }
+
+        if (!isValid)
+        {
+            return;
+        }
+
+        bool isGateRequired = true;
+        bool isTransactionUpdated = false;
+        string hasErrorMessage = string.Empty;
+
+
+        if (parsedAmount == TransactionData?.Amount)
+        {
+            isGateRequired = false;
+        }
+
+        if (TransactionData?.Scope == "debt" && TransactionData?.Status == "pending")
+        {
+            isGateRequired = false;
+        }
+
+        if (isGateRequired)
+        {
+            var(returnedStatus, returnedAmount, gateAction, returnedMessage) = this.TransactionUpdateGate();
+            if (returnedStatus)
+            {
+                if (gateAction == "add" || gateAction == "reduce")
+                {
+                    EuroTrail.Services.AuthService.UpdateWalletBalance(
+                        (int)userId,
+                        returnedAmount,
+                        gateAction
+                    );
+
+                    (isTransactionUpdated, hasErrorMessage) = EuroTrail.Services.TransactionService.UpdateTransactionById(
+                        transactionId: (int)transactionTd,
+                        userId: (int)userId,
+                        type: TransactionData?.Type ?? string.Empty,
+                        scope: TransactionData?.Scope ?? string.Empty,
+                        source: Source,
+                        tags: Tags,
+                        note: Note,
+                        fee: (decimal)(TransactionData?.Fee ?? 0),
+                        amount: parsedAmount,
+                        status: TransactionData?.Status ?? string.Empty
+                    );
+                }
+            }
+            else
+            {
+                hasErrorMessage = returnedMessage;
+            }
+        }
+        else
+        {
+            (isTransactionUpdated, hasErrorMessage) = EuroTrail.Services.TransactionService.UpdateTransactionById(
+                transactionId: (int)transactionTd,
+                userId: (int)userId,
+                type: TransactionData?.Type ?? string.Empty,
+                scope: TransactionData?.Scope ?? string.Empty,
+                source: Source,
+                tags: Tags,
+                note: Note,
+                fee: (decimal)(TransactionData?.Fee ?? 0),
+                amount: parsedAmount,
+                status: TransactionData?.Status ?? string.Empty
+            );
+        }
+
+        if (isTransactionUpdated)
+        {
+            NavigationManager.NavigateTo($"/transaction-detail/{TransactionData?.Id}");
+        }
+        else
+        {
+            GeneralError = hasErrorMessage;
+            LastErrorTime = DateTime.Now;
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(5000);
+                if ((DateTime.Now - LastErrorTime).TotalSeconds >= 5)
+                {
+                    await InvokeAsync(() => ResetErrorMessage());
+                }
+            });
+        }
+    }
+
+    private (bool status, decimal amount, string command, string message) TransactionUpdateGate()
+    {
+        int? userId = currentUser?.Id;
+        int? transactionTd = TransactionData?.Id;
+
+        if (userId == null || transactionTd == null)
+        {
+            return (false, 0, "none", "Can't update the settlement. Play try again later.");
+        }
+
+        decimal amount = 0;
+        decimal.TryParse(Amount, out amount);
+
+        decimal incomeBalance = EuroTrail.Services.TransactionService.GetTransactionBalance((int)userId, "income");
+        decimal expenseBalance = EuroTrail.Services.TransactionService.GetTransactionBalance((int)userId, "expense");
+        decimal totalDebtClearedBalance = EuroTrail.Services.TransactionService.GetTransactionBalance((int)userId, "debt_completed");
+
+        decimal balanceDifference = 0;
+        decimal availableBalance = incomeBalance - (expenseBalance + totalDebtClearedBalance);
+
+        if (availableBalance < 0) 
+        {
+            availableBalance = 0;
+
+            return (false, 0, "none", "Can't update the settlement. Play try again later.");
+        }
+        else if (TransactionData?.Scope == "income")
+        {
+            if (amount > TransactionData?.Amount)
+            {
+                balanceDifference = amount - (decimal)(TransactionData?.Amount ?? 0);
+                if (availableBalance + balanceDifference < 0)
+                {
+                    return (false, 0, "add", "The new income amount exceeds the available balance. Please enter a valid amount.");
+                }
+
+                return (true, balanceDifference, "add", "Can update the settlement.");
+            }
+            else if (amount < TransactionData?.Amount)
+            {
+                balanceDifference = (decimal)(TransactionData?.Amount ?? 0) - amount;
+
+                if (balanceDifference > availableBalance)
+                {
+                    return (false, 0, "reduce", "The new income amount is too low and would cause the balance to be insufficient for expenses and cleared debts. Please enter a valid amount.");
+                }
+
+                return (true, balanceDifference, "reduce", "Can update the settlement.");
+            }
+            else
+            {
+                return (false, 0, "none", "Can't update the settlement. Play try again later.");
+            }
+        }
+        else if (TransactionData?.Scope == "expense")
+        {
+            if (amount > TransactionData?.Amount) 
+            {
+                balanceDifference = amount - (decimal)(TransactionData?.Amount ?? 0);
+                if (availableBalance < balanceDifference) 
+                {
+                    return (false, 0, "add", "The new expense amount exceeds the available balance. Please enter a valid amount.");
+                }
+                return (true, balanceDifference, "reduce", "Can update the settlement.");
+            }
+            else if (amount < TransactionData?.Amount) 
+            {
+                balanceDifference = (decimal)(TransactionData?.Amount ?? 0) - amount;
+                return (true, balanceDifference, "add", "Can update the settlement.");
+            }
+            else
+            {
+                return (false, 0, "none", "Can't update the settlement. Play try again later.");
+            }
+        }
+        else if (TransactionData?.Scope == "debt" && TransactionData?.Status == "completed")
+        {
+            if (amount > TransactionData?.Amount) 
+            {
+                balanceDifference = amount - (decimal)(TransactionData?.Amount ?? 0);
+                if (availableBalance < balanceDifference) 
+                {
+                    return (false, 0, "add", "The new debt amount exceeds the available balance. Please enter a valid amount.");
+                }
+                return (true, balanceDifference, "reduce", "Can update the settlement.");
+            }
+            else if (amount < TransactionData?.Amount) 
+            {
+                balanceDifference = (decimal)(TransactionData?.Amount ?? 0) - amount;
+                return (true, balanceDifference, "add", "Can update the settlement.");
+            }
+            else
+            {
+                return (false, 0, "none", "Can't update the settlement. Play try again later.");
+            }
+        }
+
+        return (false, 0, "none", "Can't update the settlement. Play try again later.");
+    }
+
+    private void ResetErrorMessage()
+    {
+        GeneralError = null;
+        StateHasChanged();
+    }
+}
+
+<div class="mb-8 pb-8">
+    <div class="mt-10">
+        <h1 class="text-slate-50">Edit Settlement</h1>
+        <span class="text-sm text-slate-100">Update your @Scope settlement details below.</span>
+    </div>
+
+    <EditForm Model="@this" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+    
+        <div class="flex flex-col gap-4 mt-5">
+            <div class="w-full max-w-sm min-w-[200px]">
+                <label class="block mb-2 text-sm text-slate-400">
+                    Amount
+                </label>
+                <InputText 
+                    @bind-Value="Amount" 
+                    placeholder="50"
+                    type="text"
+                    autocomplete="off"
+                    class="w-full bg-transparent placeholder:text-slate-400 text-slate-300 text-sm border border-slate-200 rounded-md px-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow"
+                />
+                @if (AmountError != null)
+                {
+                    <span class="text-red-500 text-xs mt-2 block">@AmountError</span>
+                }
+            </div>
+
+            <div class="w-full max-w-sm min-w-[200px]">
+                <label class="block mb-2 text-sm text-slate-400">
+                    Source
+                </label>
+                <div class="relative">
+                    <select 
+                        id="system-source"
+                        @bind="Source"
+                        class="w-full bg-transparent placeholder:text-slate-400 text-slate-300 text-sm border border-slate-200 rounded-md pl-3 pr-8 py-2 transition duration-300 ease focus:outline-none appearance-none cursor-pointer focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow">
+                        @foreach (var source in SystemSources)
+                        {
+                            <option value="@source.Code" selected="@(source.Code == TransactionData?.Source)" class="bg-gray-800 hover:bg-gray-600 focus:bg-gray-600 border-none appearance-none">
+                                @source.Name
+                            </option>
+                        }
+                    </select>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.2" stroke="currentColor" class="h-5 w-5 ml-1 absolute top-2.5 right-2.5 text-slate-700">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15 12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
+                    </svg>
+                </div>
+
+                @if (SourceError != null)
+                {
+                    <span class="text-red-500 text-xs mt-2 block">@SourceError</span>
+                }
+            </div>
+            
+            <div class="w-full max-w-sm min-w-[200px]">
+                <label class="block mb-2 text-sm text-slate-400">
+                    Tags
+                </label>
+                <div class="flex">
+                    <InputText 
+                        @bind-Value="Tag"
+                        placeholder="Shopping"
+                        type="text"
+                        autocomplete="off"
+                        class="w-full bg-transparent placeholder:text-slate-400 text-slate-300 text-sm border border-slate-200 rounded-md px-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow" 
+                    />
+                    <button @onclick="AddNewTag" class="rounded-md bg-slate-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-slate-700 focus:shadow-none active:bg-slate-700 hover:bg-slate-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none ml-2" type="button">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                    </button>
+                </div>
+                @if (TagError != null)
+                {
+                    <span class="text-red-500 text-xs mt-2 block">@TagError</span>
+                }
+            </div>
+
+            @if (Tags?.Any() == true)
+            {
+                <div class="flex gap-1 mt-1">
+                    @foreach (var tag in Tags)
+                    {
+                        <span class="flex gap-1 items-center px-2 py-1 bg-transparent text-slate-50 border border-text-slate-50 text-xs font-semibold rounded-md">
+                            <svg @onclick="() => RemoveTag(tag)" class="relative w-3.5 h-3.5 -translate-x-0.5 opacity-90" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clip-rule="evenodd" /></svg>
+                            @tag
+                        </span>
+                    }
+                </div>
+            }
+
+            <div class="w-full max-w-sm min-w-[200px]">
+                <label class="block mb-2 text-sm text-slate-400">
+                    Note
+                </label>
+                <InputText
+                    @bind-Value="Note"
+                    placeholder="Payment on eBay"
+                    type="text"
+                    autocomplete="off"
+                    class="w-full bg-transparent overflow-hidden placeholder:text-slate-400 text-slate-300 text-sm border border-slate-200 rounded-md px-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow" />
+                @if (NoteError != null)
+                {
+                    <span class="text-red-500 text-xs mt-2 block">@NoteError</span>
+                }
+            </div>
+
+            @if (GeneralError != null)
+            {
+                <div class="w-full max-w-sm min-w-[200px]">
+
+                    <div role="alert"
+                         class="my-2 relative flex justify-between w-full p-3 text-sm text-white bg-slate-600 rounded-md"
+                         id="alert">
+                        <div class="flex gap-2 items-start w-full pr-10">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0M3.124 7.5A8.969 8.969 0 0 1 5.292 3m13.416 0a8.969 8.969 0 0 1 2.168 4.5" />
+                            </svg>
+
+                            <span class="w-full break-words">
+                                @GeneralError
+                            </span>
+                        </div>
+
+                        <button @onclick="ResetErrorMessage" class="flex items-center justify-center transition-all px-2 h-8 rounded-md text-white hover:bg-white/10 active:bg-white/10 absolute top-1.5 right-1.5" type="button">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            } 
+            
+            <div class="w-full max-w-sm min-w-[200px]">
+                <button class="w-full rounded-md bg-slate-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-slate-700 focus:shadow-none active:bg-slate-700 hover:bg-slate-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" type="submit" >
+                Save
+                </button>        
+            </div>
+        </div> 
+    </EditForm>
+</div>

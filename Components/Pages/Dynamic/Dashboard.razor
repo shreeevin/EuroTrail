@@ -3,25 +3,156 @@
 @inject NavigationManager NavigationManager
 
 @code {
-    private bool isLoggedIn;
-    private EuroTrail.Models.User? currentUser;
+	private bool isLoggedIn;
+	private EuroTrail.Models.User? currentUser;
 
-    protected override Task OnInitializedAsync()
-    {
-        isLoggedIn = EuroTrail.Services.Session.GetInstance().IsLoggedIn();
+	private string ActiveTab = "debt";
+	private string ActiveSortTarget = "amount";
+	private string TargetStatus = "pending";
 
-        if (!isLoggedIn)
-        {
-            NavigationManager.NavigateTo("/login");
-            return Task.CompletedTask; 
-        }
+	private int CurrentPage = 1;
+	private int PageSize = 5;
+	private int TotalPage = 0;
 
-        currentUser = EuroTrail.Services.AuthService.GetCurrentUser();
-        return Task.CompletedTask; 
+	private bool IsFilterEnabled = false;
+
+	private string AmountSort = "none";
+	private string DateSort = "latest";
+
+	private List<EuroTrail.Models.Transaction> AllTransactions = new List<EuroTrail.Models.Transaction>();
+
+	protected override Task OnInitializedAsync()
+	{
+		isLoggedIn = EuroTrail.Services.Session.GetInstance().IsLoggedIn();
+
+		if (!isLoggedIn)
+		{
+			NavigationManager.NavigateTo("/login");
+			return Task.CompletedTask; 
+		}
+		else
+		{
+			this.isUserConfigured();
+		}
+
+		currentUser = EuroTrail.Services.AuthService.GetCurrentUser();
+
+		this.GetAllTransactionsData(
+			target: ActiveTab,
+			isSearch: IsFilterEnabled
+		);
+
+		return Task.CompletedTask; 
     }
+
+    private void isUserConfigured()
+    {
+        bool isConfigured = EuroTrail.Services.AuthService.IsConfigured();
+
+        if (!isConfigured)
+        {
+            NavigationManager.NavigateTo("/profile");
+        }
+    }
+
+    private void ToggleDateSort()
+	{
+		ActiveSortTarget = "date";
+		CurrentPage = 1;
+		TotalPage = 0;
+
+		DateSort = (DateSort == "oldest") ? "latest" : "oldest";
+		
+		this.GetAllTransactionsData(
+			target: ActiveTab,
+			isSearch: IsFilterEnabled
+		);
+	}
+
+	private void ToggleAmountSort()
+	{
+		ActiveSortTarget = "amount";
+		CurrentPage = 1;
+		TotalPage = 0;
+
+		AmountSort = AmountSort switch
+		{
+			"none" => "l2h",    
+			"l2h" => "h2l",     
+			"h2l" => "none",    
+			_ => "none"         
+		};
+
+		this.GetAllTransactionsData(
+			target: ActiveTab,
+			isSearch: IsFilterEnabled
+		);
+	}
+
+    private void GetAllTransactionsData(string target = "debt", bool isSearch = false)
+	{
+		int? userId = currentUser?.Id;
+		if (userId == null)
+		{
+			return;
+		}
+
+		if (!isSearch)
+		{
+			var (transactionsData, pageData) = EuroTrail.Services.TransactionService.GetPendingDebtTransactions(
+				userId: (int)userId,
+				amountSort: AmountSort,
+				dateSort: DateSort,
+				targetSort: ActiveSortTarget,
+				scope: target,
+				page: (int)CurrentPage,
+				pageSize: (int)PageSize,
+				targetStatus: TargetStatus
+			);
+
+			AllTransactions = transactionsData;
+			TotalPage = pageData;
+			
+		}
+	}
+
+	private void PreviousPagination()
+	{
+		if(CurrentPage == 1)
+		{
+			return;
+		}
+
+		CurrentPage -= 1;
+
+		this.GetAllTransactionsData(
+			target: ActiveTab,
+			isSearch: IsFilterEnabled
+		);
+	}
+
+	private void NextPagination()
+	{
+		if (TotalPage == 0)
+		{
+			return;
+		}
+
+		if(CurrentPage == TotalPage)
+		{
+			return;
+		}
+
+		CurrentPage += 1;
+
+		this.GetAllTransactionsData(
+			target: ActiveTab,
+			isSearch: IsFilterEnabled
+		);
+	}
 }
 
-<div>
+<div class="pb-8 mb-8">
     <div class="text-slate-50 mt-10">
         <h1>Welcome back, @currentUser?.Name</h1>
     </div>
@@ -37,14 +168,148 @@
     </div>
 
     <div class="flex flex-row mt-12 w-full">
-        <button class="rounded-md bg-green-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-green-700 focus:shadow-none active:bg-green-700 hover:bg-green-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none w-full" type="button">
+        <a href="/settlement-create/income" class="rounded-md bg-green-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-green-700 focus:shadow-none active:bg-green-700 hover:bg-green-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none w-full" type="button">
             Add Saving
-        </button>
-        <button class="rounded-md bg-orange-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-orange-700 focus:shadow-none active:bg-orange-700 hover:bg-orange-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none ml-2 w-full" type="button">
+        </a>
+        <a href="/settlement-create/expense" class="rounded-md bg-orange-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-orange-700 focus:shadow-none active:bg-orange-700 hover:bg-orange-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none ml-2 w-full" type="button">
             Add Expense
-        </button>
-        <button class="rounded-md bg-red-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-red-700 focus:shadow-none active:bg-red-700 hover:bg-red-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none ml-2 w-full" type="button">
+        </a>
+        <a href="/settlement-create/debt" class="rounded-md bg-red-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-red-700 focus:shadow-none active:bg-red-700 hover:bg-red-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none ml-2 w-full" type="button">
             Add Debt
-        </button>
+        </a>
     </div>
+
+	@if (AllTransactions != null && AllTransactions.Any())
+	{
+		<div class="relative flex flex-col w-full h-full text-slate-200 bg-gray-800 shadow-md rounded-xl bg-clip-border my-8 mb-8">
+			<div class="relative mx-4 mt-4 overflow-hidden text-slate-200 bg-gray-800 rounded-none bg-clip-border">
+				<div class="flex items-center justify-between gap-8 mb-4">
+					<div>
+						<h5 class="block font-sans text-xl antialiased font-semibold leading-snug tracking-normal text-slate-50"> Pending Debt </h5>
+						<p class="block mt-1 font-sans text-base antialiased font-normal leading-relaxed text-slate-100"> See information about all debt transactions </p>
+					</div>
+					<div class="flex flex-col gap-2 shrink-0 sm:flex-row">
+						<a href="/analysis" class="select-none rounded-lg border border-slate-100 py-2 px-4 text-center align-middle font-sans text-xs font-bold uppercase text-slate-50 transition-all hover:opacity-75 focus:ring focus:ring-slate-300 active:opacity-[0.85] disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" type="button"> view analysis </a>
+					</div>
+				</div>			
+			</div>		
+			<div class="p-6 px-0 overflow-hidden">
+				<table class="w-full mt-4 text-left table-auto min-w-max">
+					<thead>
+						<tr>
+							<th class="p-4 transition-colors cursor-pointer border-y border-gray-950 bg-blue-gray-50/50 hover:bg-blue-gray-50">
+								<p class="flex items-center justify-between gap-2 font-sans text-sm antialiased font-normal leading-none text-blue-gray-900 opacity-70">
+									Info
+								</p>
+							</th>
+							<th class="p-4 transition-colors cursor-pointer border-y border-gray-950 bg-blue-gray-50/50 hover:bg-blue-gray-50">
+								<p class="flex items-center justify-between gap-2 font-sans text-sm antialiased font-normal leading-none text-blue-gray-900 opacity-70">
+									Source
+								</p>
+							</th>
+							<th @onclick="ToggleAmountSort" class="p-4 transition-colors cursor-pointer border-y border-gray-950 bg-blue-gray-50/50 hover:bg-blue-gray-50">
+								<p class="flex items-center justify-between gap-2 font-sans text-sm antialiased font-normal leading-none text-blue-gray-900 opacity-70">
+									Amount
+									<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true" class="w-4 h-4">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"></path>
+									</svg>
+								</p>
+							</th>
+							<th class="p-4 transition-colors cursor-pointer border-y border-gray-950 bg-blue-gray-50/50 hover:bg-blue-gray-50">
+								<p class="flex items-center justify-between gap-2 font-sans text-sm antialiased font-normal leading-none text-blue-gray-900 opacity-70">
+									Status
+								</p>
+							</th>
+							<th @onclick="ToggleDateSort" class="p-4 transition-colors cursor-pointer border-y border-gray-950 bg-blue-gray-50/50 hover:bg-blue-gray-50">
+								<p class="flex items-center justify-between gap-2 font-sans text-sm antialiased font-normal leading-none text-blue-gray-900 opacity-70">
+									Date
+									<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true" class="w-4 h-4">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"></path>
+									</svg>
+								</p>
+							</th>
+							<th class="p-4 transition-colors cursor-pointer border-y border-gray-950 bg-blue-gray-50/50 hover:bg-blue-gray-50">
+								<p class="flex items-center justify-between gap-2 font-sans text-sm antialiased font-normal leading-none text-blue-gray-900 opacity-70"></p>
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var transaction in AllTransactions)
+						{
+							<tr class="border-b border-gray-950 last:border-b-0">
+								<td class="p-4">
+									<div class="flex items-center gap-3">
+										<img src="https://demos.creative-tim.com/test/corporate-ui-dashboard/assets/img/team-4.jpg" alt="Michael Levi" class="relative inline-block h-9 w-9 !rounded-full object-cover object-center" />
+										<div class="flex flex-col">
+											<p class="block font-sans text-sm antialiased font-normal leading-normal text-blue-gray-900"> @("EURO" + transaction?.Id.ToString().PadLeft(4, '0')) </p>
+											@if (@transaction?.Type == "debit")
+											{
+												<span class="mt-0.5 bg-transparent text-green-500 border border-neutral-300 flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full">
+													<span class="block w-1.5 h-1.5 -ml-0.5 mr-1 bg-green-500 rounded-full"></span>
+													<span class="text-xs">Debit</span>
+												</span>
+											}
+											else
+											{
+												<span class="mt-0.5 bg-transparent text-red-500 border border-neutral-300 flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full">
+													<span class="block w-1.5 h-1.5 -ml-0.5 mr-1 bg-red-500 rounded-full"></span>
+													<span class="text-xs">Credit</span>
+												</span>
+											}
+										</div>
+									</div>
+								</td>
+								<td class="p-4">
+									<div class="flex flex-col">
+										<p class="block font-sans text-sm antialiased font-normal leading-normal text-blue-gray-900"> @(EuroTrail.Helpers.SourceHelper.GetSourceNameByCode(transaction?.Source, transaction?.Scope)) </p>
+									</div>
+								</td>
+								<td class="p-4">
+									<div class="flex flex-col">
+										<p class="block font-sans text-sm antialiased font-normal leading-normal text-blue-gray-900">@currentUser?.Currency @transaction?.Amount </p>
+									</div>
+								</td>
+								<td class="p-4">
+									<div class="w-max">
+										@if (transaction?.Status == "completed")
+										{
+											<div class="relative grid items-center px-2 py-1 font-sans text-xs font-bold text-green-900 uppercase rounded-md select-none whitespace-nowrap bg-green-500">
+												<span class="">@transaction?.Status</span>
+											</div>
+										}
+										else
+										{
+											<div class="relative grid items-center px-2 py-1 font-sans text-xs font-bold text-orange-900 uppercase rounded-md select-none whitespace-nowrap bg-orange-500">
+												<span class="">@transaction?.Status</span>
+											</div>
+										}
+									</div>
+								</td>
+								<td class="p-4">
+									<p class="block font-sans text-sm antialiased font-normal leading-normal text-blue-gray-900"> @transaction?.CreatedAt.ToString("MMM dd, yyyy") </p>
+								</td>
+								<td class="p-4">
+									<a href="/transaction-detail/@transaction?.Id" class="text-slate-50 relative h-10 max-h-[40px] w-10 max-w-[40px] select-none rounded-lg text-center align-middle font-sans text-xs font-medium uppercase transition-all hover:bg-gray-600/10 active:bg-gray-600/20 disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" type="button">
+										<span class="absolute transform -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
+											<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-4 h-4">
+												<path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 00-1.32 2.214l-.8 2.685a.75.75 0 00.933.933l2.685-.8a5.25 5.25 0 002.214-1.32L19.513 8.2z"></path>
+											</svg>
+										</span>
+									</a>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		
+			<div class="flex items-center justify-between p-4 border-t border-gray-950">
+				<p class="block font-sans text-sm antialiased font-normal leading-normal text-blue-gray-900"> Page @CurrentPage of @((TotalPage == 0) ? 1 : TotalPage) </p>
+				<div class="flex gap-2">
+					<button @onclick="PreviousPagination" class="select-none rounded-lg border border-slate-100 py-2 px-4 text-center align-middle font-sans text-xs font-bold uppercase text-slate-50 transition-all hover:opacity-75 focus:ring focus:ring-gray-300 active:opacity-[0.85] disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" type="button"> Previous </button>
+					<button @onclick="NextPagination" class="select-none rounded-lg border border-slate-100 py-2 px-4 text-center align-middle font-sans text-xs font-bold uppercase text-slate-50 transition-all hover:opacity-75 focus:ring focus:ring-gray-300 active:opacity-[0.85] disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" type="button"> Next </button>
+				</div>
+			</div>
+		</div>
+	}
 </div>

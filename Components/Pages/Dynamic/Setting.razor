@@ -26,9 +26,25 @@
             NavigationManager.NavigateTo("/login");
             return Task.CompletedTask; 
         }
+        else
+        {
+            this.isUserConfigured();
+        }
 
         currentUser = EuroTrail.Services.AuthService.GetCurrentUser();
+
+        
         return Task.CompletedTask; 
+    }
+
+    private void isUserConfigured()
+    {
+        bool isConfigured = EuroTrail.Services.AuthService.IsConfigured();
+
+        if (!isConfigured)
+        {
+            NavigationManager.NavigateTo("/profile");
+        }
     }
 
     private void RestForm()
@@ -118,7 +134,7 @@
                 />
                 @if (OldPasswordError != null)
                 {
-                    <span class="text-red-500 text-xs mt-1 block">@OldPasswordError</span>
+                    <span class="text-red-500 text-xs mt-2 block">@OldPasswordError</span>
                 }
             </div>
             
@@ -144,7 +160,7 @@
                     </p> 
                     @if (NewPasswordError != null)
                     {
-                        <span class="text-red-500 text-xs mt-1 block">@NewPasswordError</span>
+                        <span class="text-red-500 text-xs mt-2 block">@NewPasswordError</span>
                     }      
                 </div>
             </div>

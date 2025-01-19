@@ -1,15 +1,19 @@
 using System.ComponentModel.DataAnnotations;
+using EuroTrail.Services;
 
 namespace EuroTrail.Helpers
 {
     public static class AuthHelper
     {
+        private static ToasterService toasterService = new ToasterService();
         public static bool ValidateOnboardInput(string name, string email, string phone)
         {
             if (string.IsNullOrEmpty(name) || name.Length < 4 || name.Length > 30)
             {
-                Console.WriteLine(
-                    "Name must be between 4 and 30 characters."
+                toasterService.ShowToast(
+                    message: "Authentication Failed", 
+                    description: "Name must be between 4 and 30 characters.",
+                    type: "error"
                 );
 
                 return false;
@@ -17,8 +21,10 @@ namespace EuroTrail.Helpers
 
             if (string.IsNullOrEmpty(email) || email.Length > 60 || !ValidateEmail(email))
             {
-                Console.WriteLine(
-                    "Email must be less than 60 characters."
+                toasterService.ShowToast(
+                    message: "Authentication Failed", 
+                    description: "Email must be less than 60 characters.",
+                    type: "error"
                 );
 
                 return false;
@@ -26,8 +32,10 @@ namespace EuroTrail.Helpers
 
             if (string.IsNullOrEmpty(phone) || phone.Length != 10 || !phone.All(char.IsDigit))
             {
-                Console.WriteLine(
-                    "Phone number must be exactly 10 digits."
+                toasterService.ShowToast(
+                    message: "Authentication Failed", 
+                    description: "Phone number must be exactly 10 digits.",
+                    type: "error"
                 );
 
                 return false;
@@ -40,8 +48,10 @@ namespace EuroTrail.Helpers
         {
             if (string.IsNullOrEmpty(oldPassword) || oldPassword.Length < 8 || oldPassword.Length > 12)
             {
-                Console.WriteLine(
-                    "Old Password must be between 8 and 12 characters. Please try again."
+                toasterService.ShowToast(
+                    message: "Authentication Failed", 
+                    description: "Old Password must be between 8 and 12 characters. Please try again.",
+                    type: "error"
                 );
                 
                 return false;
@@ -49,8 +59,10 @@ namespace EuroTrail.Helpers
 
             if (string.IsNullOrEmpty(newPassword) || newPassword.Length < 8 || newPassword.Length > 12)
             {
-                Console.WriteLine(
-                    "New Password must be between 8 and 12 characters. Please try again."
+                toasterService.ShowToast(
+                    message: "Authentication Failed", 
+                    description: "New Password must be between 8 and 12 characters. Please try again.",
+                    type: "error"
                 );
                 
                 return false;
@@ -58,8 +70,10 @@ namespace EuroTrail.Helpers
 
             if(newPassword == oldPassword)
             {
-                Console.WriteLine(
-                    "New Password must be diffrent then old password. Please try again."
+                toasterService.ShowToast(
+                    message: "Authentication Failed", 
+                    description: "New Password must be diffrent then old password. Please try again.",
+                    type: "error"
                 );
                 
                 return false;
@@ -71,8 +85,10 @@ namespace EuroTrail.Helpers
         {
             if (string.IsNullOrEmpty(username) || username.Length < 4 || username.Length > 12)
             {
-                Console.WriteLine(
-                    "Username must be between 4 and 12 characters."
+                toasterService.ShowToast(
+                    message: "Authentication Failed", 
+                    description: "Username must be between 4 and 12 characters.",
+                    type: "error"
                 );
 
                 return false;
@@ -80,8 +96,10 @@ namespace EuroTrail.Helpers
 
             if (string.IsNullOrEmpty(password) || password.Length < 8 || password.Length > 12)
             {
-                Console.WriteLine(
-                    "Password must be between 8 and 12 characters."
+                toasterService.ShowToast(
+                    message: "Authentication Failed", 
+                    description: "Password must be between 8 and 12 characters.",
+                    type: "error"
                 );
                 
                 return false;

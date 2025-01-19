@@ -1,6 +1,5 @@
 using EuroTrail.Models;
 using EuroTrail.Helpers;
-
 using Microsoft.Data.Sqlite;
 
 namespace EuroTrail.Services
@@ -11,8 +10,16 @@ namespace EuroTrail.Services
         private static string DatabaseFolderPath => Path.Combine(BaseDirectory, "Database");
         private static string DatabaseFilePath => Path.Combine(DatabaseFolderPath, "EuroTrail.db");
 
+        private static ToasterService toasterService = new ToasterService();
+
         public static User? GetCurrentUser()
         {
+            toasterService.ShowToast(
+                message: "Authentication Failed", 
+                description: "Username must be between 4 and 12 characters.",
+                type: "info"
+            );
+
             string? username = Session.GetInstance().Username;
 
             if (string.IsNullOrEmpty(username))
@@ -58,7 +65,11 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error fetching user data: {ex.Message}");
+                toasterService.ShowToast(
+                    message: "Authentication Failed", 
+                    description: $"Error fetching user data: {ex.Message}",
+                    type: "error"
+                );
             }
 
             return null;
@@ -70,7 +81,7 @@ namespace EuroTrail.Services
             {
                 if (IsUsernameDuplicate(username))
                 {
-                    Console.WriteLine($"Oops! we have some problem here, seems like user with username ({username}) already exists.");
+                    toasterService.ShowToast("Authentication Failed", $"Oops! we have some problem here, seems like user with username ({username}) already exists.", "error");
                     return false;
                 }
 
@@ -95,10 +106,12 @@ namespace EuroTrail.Services
                         Session.GetInstance().LogIn(username);
                         return true;
 
-                    } else {
-                        Console.WriteLine(
-                            "Oops! we have some problem here, seems like invalid username or password." 
-                        );                        
+                    } else {                         
+                        toasterService.ShowToast(
+                            message: "Authentication Failed", 
+                            description: "Oops! we have some problem here, seems like invalid username or password.",
+                            type: "error"
+                        );                      
 
                         return false;
                     }
@@ -107,7 +120,11 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error during registration: {ex.Message}");
+                toasterService.ShowToast(
+                    message: "Authentication Failed", 
+                    description: $"Error during registration: {ex.Message}",
+                    type: "error"
+                ); 
 
                 return false;
             }
@@ -137,9 +154,11 @@ namespace EuroTrail.Services
 
                             if (isBlocked)
                             {
-                                Console.WriteLine(
-                                    $"Oops! we have some problem here, seems like username {username} is blocked."
-                                );
+                                toasterService.ShowToast(
+                                    message: "Authentication Failed", 
+                                    description: $"Oops! we have some problem here, seems like username {username} is blocked.",
+                                    type: "error"
+                                ); 
 
                                 return false;
                             }
@@ -151,8 +170,10 @@ namespace EuroTrail.Services
                             }
                             else
                             {
-                                Console.WriteLine(
-                                    "Oops! we have some problem here, seems like invalid username or password."
+                                toasterService.ShowToast(
+                                    message: "Authentication Failed", 
+                                    description: "Oops! we have some problem here, seems like invalid username or password.",
+                                    type: "error"
                                 );
 
                                 return false;
@@ -160,8 +181,10 @@ namespace EuroTrail.Services
                         }
                         else
                         {
-                            Console.WriteLine(
-                                $"Oops! User not found with username {username}. Please try creating EuroTrail account."
+                            toasterService.ShowToast(
+                                message: "Authentication Failed", 
+                                description: $"Oops! User not found with username {username}. Please try creating EuroTrail account.",
+                                type: "error"
                             );
 
                             return false;

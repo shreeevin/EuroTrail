@@ -5,6 +5,7 @@
 @code {
     [Parameter] 
     public int id { get; set; } = 0;
+    
     private bool isLoggedIn;
     private EuroTrail.Models.User? currentUser;
     private EuroTrail.Models.Transaction? TransactionData;
@@ -25,10 +26,25 @@
         {
             NavigationManager.NavigateTo("/login");
         }
+        else
+        {
+            this.isUserConfigured();
+        }
 
         currentUser = EuroTrail.Services.AuthService.GetCurrentUser();
         this.GetTransactionDetail();
     }
+    
+    private void isUserConfigured()
+    {
+        bool isConfigured = EuroTrail.Services.AuthService.IsConfigured();
+
+        if (!isConfigured)
+        {
+            NavigationManager.NavigateTo("/profile");
+        }
+    }
+
     private void GetTransactionDetail()
     {
         int? userId = currentUser?.Id;
@@ -48,7 +64,51 @@
 
     private void ClearDebt()
     {
-        ErrorMessage = "asdsa";
+        int? userId = currentUser?.Id;
+        int? transactionId = TransactionData?.Id;
+
+        if (userId == null || transactionId == null)
+        {
+            return;
+        }
+
+        var balance = EuroTrail.Services.AuthService.GetWalletBalance((int)userId);
+
+        if (TransactionData?.Scope == "debt" && TransactionData?.Amount > balance)
+        {
+            ErrorMessage = "The transaction could not be cleared. Due to the insufficent balance for debt clearance.";
+            LastErrorTime = DateTime.Now;
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(5000);
+                if ((DateTime.Now - LastErrorTime).TotalSeconds >= 5)
+                {
+                    await InvokeAsync(() => ResetErrorMessage());
+                }
+            });
+
+            return;
+        }
+
+        bool isDebtClearanceSuccess = EuroTrail.Services.TransactionService.ClearDebt((int)transactionId, (int)userId);
+        
+        if(isDebtClearanceSuccess)
+        {
+            NavigationManager.NavigateTo("/transactions");
+        }
+        else
+        {
+            ErrorMessage = "The debt could not be cleared. Please try again later.";
+            LastErrorTime = DateTime.Now;
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(5000);
+                if ((DateTime.Now - LastErrorTime).TotalSeconds >= 5)
+                {
+                    await InvokeAsync(() => ResetErrorMessage());
+                }
+            });
+        }
     }
 
     private void DeleteTransaction()
@@ -215,8 +275,8 @@
             @if (ErrorMessage != null)
             {
                 <div role="alert"
-                     class="my-2 relative flex justify-between w-full p-3 text-sm text-white bg-slate-600 rounded-md"
-                     id="alert">
+                    class="my-2 relative flex justify-between w-full p-3 text-sm text-white bg-slate-600 rounded-md"
+                    id="alert">
                     <div class="flex gap-2 items-start w-full pr-10">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0M3.124 7.5A8.969 8.969 0 0 1 5.292 3m13.416 0a8.969 8.969 0 0 1 2.168 4.5" />
@@ -234,16 +294,24 @@
             }
 
             <div class="flex flex-row mt-8 mb-4 w-full">
-                <button class="rounded-md bg-green-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-green-700 focus:shadow-none active:bg-green-700 hover:bg-green-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" type="button">
+                <a href="/settlement-update/@TransactionData?.Id" class="rounded-md bg-green-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-green-700 focus:shadow-none active:bg-green-700 hover:bg-green-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" type="button">
                     Edit
-                </button>
+                </a>
+                
                 @if (TransactionData?.Scope == "debt")
                 {
-                    <button class="rounded-md bg-orange-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-orange-700 focus:shadow-none active:bg-orange-700 hover:bg-orange-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none ml-2" type="button">
+                    <button 
+                        @onclick="ClearDebt" 
+                        class="rounded-md bg-orange-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-orange-700 focus:shadow-none active:bg-orange-700 hover:bg-orange-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none ml-2" 
+                        type="button">
                         Clear Debt
                     </button>
                 }
-                <button @onclick="DeleteTransaction" class="rounded-md bg-red-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-red-700 focus:shadow-none active:bg-red-700 hover:bg-red-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none ml-2" type="button">
+
+                <button 
+                    @onclick="DeleteTransaction" 
+                    class="rounded-md bg-red-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-red-700 focus:shadow-none active:bg-red-700 hover:bg-red-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none ml-2" 
+                    type="button">
                     Delete
                 </button>
             </div>

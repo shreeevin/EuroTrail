@@ -49,7 +49,7 @@ namespace EuroTrail.Services
                 return false;
             }
         }
-        public static bool CreateTransaction(
+        public static (bool status, string message) CreateTransaction(
             int userId, 
             string tnx, 
             string type, 
@@ -70,7 +70,7 @@ namespace EuroTrail.Services
                     if(currentUserBalance < amount)
                     {
                         Debug.WriteLine("Insufficient balance. Cannot proceed with transaction.");
-                        return false;
+                        return (false, "Insufficient balance. Cannot proceed with transaction.");
                     }
                 }
 
@@ -110,13 +110,21 @@ namespace EuroTrail.Services
                         }
                     }
 
-                    return result > 0;  
+                    if(result > 0)  
+                    {
+
+                        return (true, "Transaction created successfully");
+                    }
+                    else
+                    {
+                        return (false, "Error creating transaction. Please try again later.");
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error creating transaction: {ex.Message}");
-                return false;
+                return (false, $"Error creating transaction: {ex.Message}");
             }
         }
 
@@ -184,7 +192,16 @@ namespace EuroTrail.Services
             }
         }
 
-        public static (List<Transaction> Transactions, int TotalPages) GetTransactionsByScope(int userId, string scope, int page, int pageSize, string? status = "completed")
+        public static (List<Transaction> Transactions, int TotalPages) GetPendingDebtTransactions(
+            int userId, 
+            string amountSort,
+            string dateSort,
+            string targetSort,
+            string scope, 
+            int page, 
+            int pageSize,
+            string? targetStatus = "completed"
+        )
         {
             try
             {
@@ -192,18 +209,29 @@ namespace EuroTrail.Services
                 {
                     connection.Open();
 
+                    string orderByClause = "created_at DESC";
+                    if (targetSort == "amount")
+                    {
+                        if (amountSort == "h2l") orderByClause = "amount DESC";
+                        else if (amountSort == "l2h") orderByClause = "amount ASC";
+                    }
+                    else if (targetSort == "date")
+                    {
+                        if (dateSort == "latest") orderByClause = "created_at DESC";
+                        else if (dateSort == "oldest") orderByClause = "created_at ASC";
+                    }
+
                     var command = connection.CreateCommand();
-                    command.CommandText = @"
+                    command.CommandText = $@"
                         SELECT id, user_id, tnx, type, scope, source, tags, note, fee, amount, status, created_at, updated_at
                         FROM transactions
-                        WHERE user_id = $userId AND scope = $scope AND status = $status
-                        ORDER BY created_at DESC
+                        WHERE user_id = $userId AND scope = $scope AND status = $Status
+                        ORDER BY {orderByClause}
                         LIMIT $PageSize OFFSET $Offset;
                     ";
-
                     command.Parameters.AddWithValue("$userId", userId);
                     command.Parameters.AddWithValue("$scope", scope);
-                    command.Parameters.AddWithValue("$status", status);
+                    command.Parameters.AddWithValue("$Status", targetStatus);                    
                     command.Parameters.AddWithValue("$PageSize", pageSize);
                     command.Parameters.AddWithValue("$Offset", (page - 1) * pageSize);
 
@@ -230,13 +258,17 @@ namespace EuroTrail.Services
                         };
                         transactions.Add(transaction);
                     }
+                    reader.Close();
 
-                    reader.Close(); 
                     command.CommandText = @"
                         SELECT COUNT(*)
                         FROM transactions
-                        WHERE user_id = $userId AND scope = $scope AND status = $status;
+                        WHERE user_id = $userId AND scope = $scope;
                     ";
+                    
+                    command.Parameters.Clear(); 
+                    command.Parameters.AddWithValue("$userId", userId);
+                    command.Parameters.AddWithValue("$scope", scope);
 
                     int totalRecords = Convert.ToInt32(command.ExecuteScalar());
                     int totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
@@ -251,6 +283,94 @@ namespace EuroTrail.Services
             }
         }
 
+        public static (List<Transaction> Transactions, int TotalPages) GetTransactionsByScope(
+            int userId, 
+            string amountSort,
+            string dateSort,
+            string targetSort,
+            string scope, 
+            int page, 
+            int pageSize
+        )
+        {
+            try
+            {
+                using (var connection = new SqliteConnection($"Data Source={DatabaseFilePath}"))
+                {
+                    connection.Open();
+
+                    string orderByClause = "created_at DESC";
+                    if (targetSort == "amount")
+                    {
+                        if (amountSort == "h2l") orderByClause = "amount DESC";
+                        else if (amountSort == "l2h") orderByClause = "amount ASC";
+                    }
+                    else if (targetSort == "date")
+                    {
+                        if (dateSort == "latest") orderByClause = "created_at DESC";
+                        else if (dateSort == "oldest") orderByClause = "created_at ASC";
+                    }
+
+                    var command = connection.CreateCommand();
+                    command.CommandText = $@"
+                        SELECT id, user_id, tnx, type, scope, source, tags, note, fee, amount, status, created_at, updated_at
+                        FROM transactions
+                        WHERE user_id = $userId AND scope = $scope
+                        ORDER BY {orderByClause}
+                        LIMIT $PageSize OFFSET $Offset;
+                    ";
+                    command.Parameters.AddWithValue("$userId", userId);
+                    command.Parameters.AddWithValue("$scope", scope);
+                    command.Parameters.AddWithValue("$PageSize", pageSize);
+                    command.Parameters.AddWithValue("$Offset", (page - 1) * pageSize);
+
+                    var reader = command.ExecuteReader();
+                    var transactions = new List<Transaction>();
+
+                    while (reader.Read())
+                    {
+                        var transaction = new Transaction
+                        {
+                            Id = reader.GetInt32(0),
+                            UserId = reader.GetInt32(1),
+                            Tnx = reader.GetString(2),
+                            Type = reader.GetString(3),
+                            Scope = reader.GetString(4),
+                            Source = reader.GetString(5),
+                            Tags = JsonConvert.DeserializeObject<List<string>>(reader.GetString(6)) ?? new List<string>(),
+                            Note = reader.GetString(7),
+                            Fee = reader.GetDecimal(8),
+                            Amount = reader.GetDecimal(9),
+                            Status = reader.GetString(10),
+                            CreatedAt = reader.GetDateTime(11),
+                            UpdatedAt = reader.GetDateTime(12)
+                        };
+                        transactions.Add(transaction);
+                    }
+                    reader.Close();
+
+                    command.CommandText = @"
+                        SELECT COUNT(*)
+                        FROM transactions
+                        WHERE user_id = $userId AND scope = $scope;
+                    ";
+                    
+                    command.Parameters.Clear(); 
+                    command.Parameters.AddWithValue("$userId", userId);
+                    command.Parameters.AddWithValue("$scope", scope);
+
+                    int totalRecords = Convert.ToInt32(command.ExecuteScalar());
+                    int totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
+
+                    return (transactions, totalPages);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error retrieving transactions by scope: {ex.Message}");
+                return (new List<Transaction>(), 0);
+            }
+        }
 
         public static int GetTransactionCount(int userId, string filter)
         {
@@ -527,8 +647,14 @@ namespace EuroTrail.Services
             }
         }
 
-
-        public static (List<Transaction> Transactions, int TotalPages) GetAllTransactions(int userId, int page = 1, int pageSize = 5)
+        public static (List<Transaction> Transactions, int TotalPages) GetAllTransactions(
+            int userId,
+            string amountSort = "none",
+            string dateSort = "desc",
+            string targetSort = "date",
+            int page = 1,
+            int pageSize = 5
+        )
         {
             try
             {
@@ -542,17 +668,29 @@ namespace EuroTrail.Services
                         FROM transactions
                         WHERE user_id = $userId;
                     ";
+
                     countCommand.Parameters.AddWithValue("$userId", userId);
                     int totalCount = Convert.ToInt32(countCommand.ExecuteScalar());
-
                     int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
+                    string orderByClause = "created_at DESC";
+                    if (targetSort == "amount")
+                    {
+                        if (amountSort == "h2l") orderByClause = "amount DESC";
+                        else if (amountSort == "l2h") orderByClause = "amount ASC";
+                    }
+                    else if (targetSort == "date")
+                    {
+                        if (dateSort == "latest") orderByClause = "created_at DESC";
+                        else if (dateSort == "oldest") orderByClause = "created_at ASC";
+                    }
+
                     var command = connection.CreateCommand();
-                    command.CommandText = @"
+                    command.CommandText = $@"
                         SELECT id, user_id, tnx, type, scope, source, tags, note, fee, amount, status, created_at, updated_at
                         FROM transactions
                         WHERE user_id = $userId
-                        ORDER BY created_at DESC
+                        ORDER BY {orderByClause}
                         LIMIT $PageSize OFFSET $Offset;
                     ";
 
@@ -595,7 +733,6 @@ namespace EuroTrail.Services
             }
         }
 
-
         public static (List<Transaction> Transactions, int TotalPages) GetTransactionsByMixedFilter(
             int userId, 
             string? searchKeyword = null,
@@ -604,6 +741,9 @@ namespace EuroTrail.Services
             string? status = null,
             string? startDate = null,   
             string? endDate = null,
+            string amountSort = "none",
+            string dateSort = "desc",
+            string targetSort = "date",
             int page = 1, 
             int pageSize = 5 
         )
@@ -641,8 +781,21 @@ namespace EuroTrail.Services
                     {
                         query += " AND created_at BETWEEN $startDate AND $endDate";
                     }
+                    
+                    string orderByClause = "created_at DESC";
+                    
+                    if (targetSort == "amount")
+                    {
+                        if (amountSort == "h2l") orderByClause = "amount DESC";
+                        else if (amountSort == "l2h") orderByClause = "amount ASC";
+                    }
+                    else if (targetSort == "date")
+                    {
+                        if (dateSort == "latest") orderByClause = "created_at DESC";
+                        else if (dateSort == "oldest") orderByClause = "created_at ASC";
+                    }
 
-                    query += " ORDER BY created_at DESC LIMIT $PageSize OFFSET $Offset";
+                    query += $" ORDER BY {orderByClause} LIMIT $PageSize OFFSET $Offset";
 
                     var command = connection.CreateCommand();
                     command.CommandText = query;
@@ -776,7 +929,7 @@ namespace EuroTrail.Services
         }
 
 
-        public static bool UpdateTransactionById(int transactionId, int userId, string type, string scope, string source, List<string> tags, string note, decimal fee, decimal amount, string status)
+        public static (bool status, string message) UpdateTransactionById(int transactionId, int userId, string type, string scope, string source, List<string> tags, string note, decimal fee, decimal amount, string status)
         {
             try
             {
@@ -808,19 +961,19 @@ namespace EuroTrail.Services
 
                     if (result > 0)
                     {
-                        return true; 
+                        return (true, "Transaction Updated successfully."); 
                     }
                     else
                     {
                         Debug.WriteLine("No transaction found or no changes made.");
-                        return false;
+                        return (false, "No transaction found or no changes made.");
                     }
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error updating transaction: {ex.Message}");
-                return false; 
+                return (false, $"Error updating transaction: {ex.Message}"); 
             }
         }
         public static (bool status, string message) DeleteTransaction(int transactionId, int userId)

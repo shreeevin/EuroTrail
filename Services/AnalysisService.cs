@@ -1,6 +1,3 @@
-using EuroTrail.Models;
-using EuroTrail.Helpers;
-
 using Microsoft.Data.Sqlite;
 
 namespace EuroTrail.Services
@@ -10,6 +7,7 @@ namespace EuroTrail.Services
         private static string BaseDirectory => AppContext.BaseDirectory;
         private static string DatabaseFolderPath => Path.Combine(BaseDirectory, "Database");
         private static string DatabaseFilePath => Path.Combine(DatabaseFolderPath, "EuroTrail.db");
+        private static ToasterService toasterService = new ToasterService();
 
         public static int GetTransactionCount(int userId, string filter)
         {
@@ -81,7 +79,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error counting transactions: {ex.Message}");
+                toasterService.ShowToast(
+                    message: "Authentication Failed", 
+                    description: $"Error counting transactions: {ex.Message}",
+                    type: "error"
+                );
+
                 return 0;
             }
         }
@@ -163,7 +166,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting balance: {ex.Message}");
+                toasterService.ShowToast(
+                    message: "Authentication Failed", 
+                    description: $"Error getting balance: {ex.Message}",
+                    type: "error"
+                );
+                
                 return 0;
             }
         }

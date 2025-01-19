@@ -1,5 +1,4 @@
 using EuroTrail.Models;
-using System.Collections.Generic;
 
 namespace EuroTrail.Helpers
 {

@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using EuroTrail.Helpers;
+using EuroTrail.Services;
+
+using Microsoft.Extensions.Logging;
 
 namespace EuroTrail
 {
@@ -15,6 +18,9 @@ namespace EuroTrail
                 });
 
             builder.Services.AddMauiBlazorWebView();
+            builder.Services.AddSingleton<ToasterService>();
+            builder.Services.AddSingleton<AuthHelper>();
+
 #if DEBUG
     		builder.Services.AddBlazorWebViewDeveloperTools();
     		builder.Logging.AddDebug();
