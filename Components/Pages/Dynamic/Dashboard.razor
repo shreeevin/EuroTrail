@@ -89,7 +89,10 @@
 		);
 	}
 
-    private void GetAllTransactionsData(string target = "debt", bool isSearch = false)
+    private void GetAllTransactionsData(
+		string target = "debt", 
+		bool isSearch = false
+	)
 	{
 		int? userId = currentUser?.Id;
 		if (userId == null)
@@ -111,8 +114,7 @@
 			);
 
 			AllTransactions = transactionsData;
-			TotalPage = pageData;
-			
+			TotalPage = pageData;			
 		}
 	}
 
@@ -239,7 +241,48 @@
 							<tr class="border-b border-gray-950 last:border-b-0">
 								<td class="p-4">
 									<div class="flex items-center gap-3">
-										<img src="https://demos.creative-tim.com/test/corporate-ui-dashboard/assets/img/team-4.jpg" alt="Michael Levi" class="relative inline-block h-9 w-9 !rounded-full object-cover object-center" />
+										@if(@transaction?.Scope == "income")
+										{
+											<svg class="relative inline-block h-9 w-9 !rounded-full object-cover object-center" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<rect width="24" height="24" rx="12" fill="#CBFF82" />
+												<g clip-path="url(#clip0_72_2)">
+													<path d="M17 16.4053C13.7139 17.1987 10.2861 17.1987 7 16.4053" stroke="#618635" stroke-linecap="round" stroke-linejoin="round" />
+													<path d="M11.9751 7L11.9751 14" stroke="#618635" stroke-linecap="round" stroke-linejoin="round" />
+													<path d="M14.4502 11.9004L12.6902 13.7054C12.6002 13.798 12.4925 13.8717 12.3735 13.9221C12.2546 13.9724 12.1268 13.9983 11.9977 13.9983C11.8685 13.9983 11.7407 13.9724 11.6217 13.9221C11.5028 13.8717 11.3951 13.798 11.3052 13.7054L9.55017 11.9004" stroke="#618635" stroke-linecap="round" stroke-linejoin="round" />
+												</g>
+												<defs>
+													<clipPath id="clip0_72_2">
+														<rect width="12" height="12" fill="white" transform="matrix(0 1 -1 0 18 6)" />
+													</clipPath>
+												</defs>
+											</svg>
+										} 
+										else if(@transaction?.Scope == "expense")
+										{
+											<svg class="relative inline-block h-9 w-9 !rounded-full object-cover object-center" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<rect width="24" height="24" rx="12" fill="#FFC182" />
+												<g clip-path="url(#clip0_72_3)">
+													<path d="M17 16.4053C13.7139 17.1987 10.2861 17.1987 7 16.4053" stroke="#866035" stroke-linecap="round" stroke-linejoin="round" />
+													<path d="M12.0249 14L12.0249 7" stroke="#866035" stroke-linecap="round" stroke-linejoin="round" />
+													<path d="M9.55017 9.10041L11.3052 7.29541C11.3944 7.20146 11.5018 7.12666 11.6209 7.07553C11.7399 7.02441 11.8681 6.99805 11.9977 6.99805C12.1272 6.99805 12.2555 7.02441 12.3745 7.07553C12.4936 7.12666 12.601 7.20146 12.6902 7.29541L14.4502 9.10041" stroke="#866035" stroke-linecap="round" stroke-linejoin="round" />
+												</g>
+												<defs>
+													<clipPath id="clip0_72_3">
+														<rect width="12" height="12" fill="white" transform="matrix(0 1 -1 0 18 6)" />
+													</clipPath>
+												</defs>
+											</svg>
+										}
+										else
+										{	
+											<svg class="relative inline-block h-9 w-9 !rounded-full object-cover object-center" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+												<rect width="24" height="24" rx="12" fill="#FF8282" />
+												<path d="M17 15.9102C13.713 16.6961 10.287 16.6961 7 15.9102" stroke="#863536" stroke-linecap="round" stroke-linejoin="round" />
+												<path d="M9.52539 12.7303L14.4754 7.78027" stroke="#863536" stroke-linecap="round" stroke-linejoin="round" />
+												<path d="M11.2402 7.52006L13.7402 7.48503C13.8728 7.48013 14.0051 7.50267 14.1286 7.55119C14.2522 7.59971 14.3644 7.67316 14.4582 7.76701C14.5521 7.86087 14.6256 7.97306 14.6741 8.0966C14.7226 8.22015 14.7451 8.35239 14.7402 8.48503L14.7052 10.985" stroke="#863536" stroke-linecap="round" stroke-linejoin="round" />
+											</svg>
+										}
+
 										<div class="flex flex-col">
 											<p class="block font-sans text-sm antialiased font-normal leading-normal text-blue-gray-900"> @("EURO" + transaction?.Id.ToString().PadLeft(4, '0')) </p>
 											@if (@transaction?.Type == "debit")
@@ -261,7 +304,7 @@
 								</td>
 								<td class="p-4">
 									<div class="flex flex-col">
-										<p class="block font-sans text-sm antialiased font-normal leading-normal text-blue-gray-900"> @(EuroTrail.Helpers.SourceHelper.GetSourceNameByCode(transaction?.Source, transaction?.Scope)) </p>
+										<p class="block font-sans text-sm antialiased font-normal leading-normal text-blue-gray-900"> @(EuroTrail.Helpers.SourceHelper.GetSourceNameByCode(transaction?.Source ?? string.Empty, transaction?.Scope ?? string.Empty)) </p>
 									</div>
 								</td>
 								<td class="p-4">
@@ -291,8 +334,8 @@
 								<td class="p-4">
 									<a href="/transaction-detail/@transaction?.Id" class="text-slate-50 relative h-10 max-h-[40px] w-10 max-w-[40px] select-none rounded-lg text-center align-middle font-sans text-xs font-medium uppercase transition-all hover:bg-gray-600/10 active:bg-gray-600/20 disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" type="button">
 										<span class="absolute transform -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
-											<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-4 h-4">
-												<path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 00-1.32 2.214l-.8 2.685a.75.75 0 00.933.933l2.685-.8a5.25 5.25 0 002.214-1.32L19.513 8.2z"></path>
+											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+												<path stroke-linecap="round" stroke-linejoin="round" d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25" />
 											</svg>
 										</span>
 									</a>

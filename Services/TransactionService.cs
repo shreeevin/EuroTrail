@@ -45,7 +45,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error creating transaction: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error creating transaction: {ex.Message}",
+                    type: "danger"
+                );
+
                 return false;
             }
         }
@@ -69,7 +74,12 @@ namespace EuroTrail.Services
 
                     if(currentUserBalance < amount)
                     {
-                        Debug.WriteLine("Insufficient balance. Cannot proceed with transaction.");
+                        ToasterService.ShowGlobalToast(
+                            message: "Wallet Balance", 
+                            description: "Insufficient balance. Cannot proceed with transaction.",
+                            type: "warning"
+                        );
+
                         return (false, "Insufficient balance. Cannot proceed with transaction.");
                     }
                 }
@@ -112,18 +122,34 @@ namespace EuroTrail.Services
 
                     if(result > 0)  
                     {
+                        ToasterService.ShowGlobalToast(
+                            message: "Success", 
+                            description: "Transaction created successfully.",
+                            type: "success"
+                        );
 
                         return (true, "Transaction created successfully");
                     }
                     else
                     {
+                        ToasterService.ShowGlobalToast(
+                            message: "Failed", 
+                            description: "Error creating transaction. Please try again later.",
+                            type: "warning"
+                        );
+
                         return (false, "Error creating transaction. Please try again later.");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error creating transaction: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error creating transaction: {ex.Message}",
+                    type: "danger"
+                );
+
                 return (false, $"Error creating transaction: {ex.Message}");
             }
         }
@@ -157,7 +183,11 @@ namespace EuroTrail.Services
                             }
                             catch (Exception ex)
                             {
-                                Debug.WriteLine($"Error deserializing tags: {ex.Message}");
+                                ToasterService.ShowGlobalToast(
+                                    message: "Server Error", 
+                                    description: $"Error deserializing tags: {ex.Message}",
+                                    type: "danger"
+                                );
                             }
 
                             return new Transaction
@@ -179,7 +209,12 @@ namespace EuroTrail.Services
                         }
                         else
                         {
-                            Debug.WriteLine("Transaction not found.");
+                            ToasterService.ShowGlobalToast(
+                                message: "Server Error", 
+                                description: "Transaction not found.",
+                                type: "warning"
+                            );
+
                             return null; 
                         }
                     }
@@ -187,7 +222,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error fetching transaction: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error fetching transaction: {ex.Message}",
+                    type: "danger"
+                );
+
                 return null;
             }
         }
@@ -263,12 +303,13 @@ namespace EuroTrail.Services
                     command.CommandText = @"
                         SELECT COUNT(*)
                         FROM transactions
-                        WHERE user_id = $userId AND scope = $scope;
+                        WHERE user_id = $userId AND scope = $scope AND status = $Status;
                     ";
                     
                     command.Parameters.Clear(); 
                     command.Parameters.AddWithValue("$userId", userId);
                     command.Parameters.AddWithValue("$scope", scope);
+                    command.Parameters.AddWithValue("$Status", targetStatus);                    
 
                     int totalRecords = Convert.ToInt32(command.ExecuteScalar());
                     int totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
@@ -278,7 +319,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error retrieving transactions by scope: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error retrieving transactions by scope: {ex.Message}",
+                    type: "danger"
+                );
+
                 return (new List<Transaction>(), 0);
             }
         }
@@ -367,7 +413,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error retrieving transactions by scope: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error retrieving transactions by scope: {ex.Message}",
+                    type: "danger"
+                );
+                
                 return (new List<Transaction>(), 0);
             }
         }
@@ -442,7 +493,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error counting transactions: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error counting transactions: {ex.Message}",
+                    type: "danger"
+                );
+
                 return 0;
             }
         }
@@ -523,7 +579,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error getting balance: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error getting balance: {ex.Message}",
+                    type: "danger"
+                );  
+
                 return 0;
             }
         }
@@ -573,7 +634,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error retrieving transactions by source: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error retrieving transactions by source: {ex.Message}",
+                    type: "danger"
+                );  
+
                 return new List<Transaction>();
             }
         }
@@ -642,7 +708,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error retrieving transactions by type: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error retrieving transactions by type: {ex.Message}",
+                    type: "danger"
+                );                
+
                 return (new List<Transaction>(), 0);
             }
         }
@@ -728,7 +799,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error retrieving all transactions: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error retrieving all transactions: {ex.Message}",
+                    type: "danger"
+                );
+
                 return (new List<Transaction>(), 0);
             }
         }
@@ -923,7 +999,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error retrieving transactions with filters: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error retrieving transactions with filters: {ex.Message}",
+                    type: "danger"
+                );
+
                 return (new List<Transaction>(), 0);
             }
         }
@@ -961,18 +1042,34 @@ namespace EuroTrail.Services
 
                     if (result > 0)
                     {
+                        ToasterService.ShowGlobalToast(
+                            message: "Success", 
+                            description: "Transaction Updated successfully.",
+                            type: "success"
+                        );
+
                         return (true, "Transaction Updated successfully."); 
                     }
                     else
                     {
-                        Debug.WriteLine("No transaction found or no changes made.");
+                        ToasterService.ShowGlobalToast(
+                            message: "Server Error", 
+                            description: "No transaction found or no changes made.",
+                            type: "warning"
+                        );
+
                         return (false, "No transaction found or no changes made.");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error updating transaction: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error updating transaction: {ex.Message}",
+                    type: "danger"
+                );
+
                 return (false, $"Error updating transaction: {ex.Message}"); 
             }
         }
@@ -1005,7 +1102,12 @@ namespace EuroTrail.Services
                         }
                         else
                         {
-                            Debug.WriteLine("Transaction not found.");
+                            ToasterService.ShowGlobalToast(
+                                message: "Server Error", 
+                                description: "Transaction not found.",
+                                type: "warning"
+                            );
+
                             return (false, "Transaction not found.");
                         }
                     }
@@ -1018,11 +1120,20 @@ namespace EuroTrail.Services
                     var rowsAffected = deleteCommand.ExecuteNonQuery();
                     if (rowsAffected > 0)
                     {
-                        Debug.WriteLine("Transaction deleted successfully.");
+                        ToasterService.ShowGlobalToast(
+                            message: "Success", 
+                            description: "Transaction deleted successfully.",
+                            type: "success"
+                        );
                     }
                     else
                     {
-                        Debug.WriteLine("Transaction not found or does not belong to the user.");
+                        ToasterService.ShowGlobalToast(
+                            message: "Server Error", 
+                            description: "Transaction not found or does not belong to the user.",
+                            type: "warning"
+                        );
+
                         return (false,"Transaction not found or does not belong to the user.");
                     }
                 }
@@ -1054,12 +1165,17 @@ namespace EuroTrail.Services
                         );
                     }
                 }
-
+                
                 return (true, "Transaction deleted successfully");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error deleting transaction: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error deleting transaction: {ex.Message}",
+                    type: "danger"
+                );
+
                 return (false, $"Error deleting transaction: {ex.Message}");
             }
         }    
@@ -1085,7 +1201,12 @@ namespace EuroTrail.Services
                     {
                         if (!reader.Read())
                         {
-                            Debug.WriteLine("Transaction not found or does not belong to the user.");
+                            ToasterService.ShowGlobalToast(
+                                message: "Server Error", 
+                                description: "Transaction not found or does not belong to the user.",
+                                type: "warning"
+                            );
+
                             return false;
                         }
 
@@ -1096,7 +1217,12 @@ namespace EuroTrail.Services
 
                         if (scope != "debt" || status == "completed")
                         {
-                            Debug.WriteLine("Transaction is not a pending debt or is already completed.");
+                            ToasterService.ShowGlobalToast(
+                                message: "Server Error", 
+                                description: "Transaction is not a pending debt or is already completed.",
+                                type: "warning"
+                            );
+
                             return false;
                         }
                     }
@@ -1114,11 +1240,22 @@ namespace EuroTrail.Services
                     "reduce" 
                 );
 
+                ToasterService.ShowGlobalToast(
+                    message: "Debt Cleared", 
+                    description: "Hurry! You have successfully cleared the debt.",
+                    type: "success"
+                );
+
                 return true;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error clearing debt: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error clearing debt: {ex.Message}",
+                    type: "danger"
+                );
+
                 return false;
             }
         }
@@ -1164,7 +1301,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error retrieving transaction extremes: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error retrieving transaction extremes: {ex.Message}",
+                    type: "danger"
+                );
+
                 return (null, null);
             }
         }

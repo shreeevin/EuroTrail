@@ -1,15 +1,38 @@
 using EuroTrail.Models;
-using System.Diagnostics;
 
 namespace EuroTrail.Services
 {
     public class ToasterService
     {
+        private static ToasterService? currentInstance;
+        private static readonly object currentLock = new object();
+
+        public static ToasterService Instance
+        {
+            get
+            {
+                if (currentInstance == null)
+                {
+                    lock (currentLock)
+                    {
+                        currentInstance ??= new ToasterService();
+                    }
+                }
+                return currentInstance;
+            }
+        }
+
         private Action? NotifyUI;
         public event Action? OnToastsUpdated;
         private readonly List<Toast> toasts = new();
         public IReadOnlyList<Toast> Toasts => toasts.AsReadOnly();
 
+        private ToasterService() { }
+
+        public static void ShowGlobalToast(string message, string description, string type = "info")
+        {
+            Instance.ShowToast(message, description, type);
+        }
         public void ShowToast(string message, string description, string type = "info")
         {
             var Id = Guid.NewGuid();

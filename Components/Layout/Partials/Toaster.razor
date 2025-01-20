@@ -17,18 +17,7 @@
     {
         ToasterService.OnToastsUpdated -= Refresh;
     }
-
-    private void addTest()
-    {
-        ToasterService.ShowToast(
-            "ShowToast Demo",
-            "ShowToast Demo",
-            "info"
-        );
-    }
 }
-
-<div @onclick="addTest" id="toaster-container" class="fixed top-4 right-4 space-y-4 z-50 bg-red-500 w-10 h-10 rounded-xl"></div>
 
 <div id="toaster-container" class="fixed top-4 right-4 space-y-4 z-50">
     @foreach (var toast in ToasterService.Toasts)

@@ -18,8 +18,7 @@ namespace EuroTrail
                 });
 
             builder.Services.AddMauiBlazorWebView();
-            builder.Services.AddSingleton<ToasterService>();
-            builder.Services.AddSingleton<AuthHelper>();
+            builder.Services.AddSingleton<ToasterService>(serviceProvider => ToasterService.Instance);
 
 #if DEBUG
     		builder.Services.AddBlazorWebViewDeveloperTools();

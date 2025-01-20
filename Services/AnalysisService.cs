@@ -7,8 +7,6 @@ namespace EuroTrail.Services
         private static string BaseDirectory => AppContext.BaseDirectory;
         private static string DatabaseFolderPath => Path.Combine(BaseDirectory, "Database");
         private static string DatabaseFilePath => Path.Combine(DatabaseFolderPath, "EuroTrail.db");
-        private static ToasterService toasterService = new ToasterService();
-
         public static int GetTransactionCount(int userId, string filter)
         {
             try
@@ -79,10 +77,10 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                toasterService.ShowToast(
-                    message: "Authentication Failed", 
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
                     description: $"Error counting transactions: {ex.Message}",
-                    type: "error"
+                    type: "danger"
                 );
 
                 return 0;
@@ -166,10 +164,10 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                toasterService.ShowToast(
-                    message: "Authentication Failed", 
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
                     description: $"Error getting balance: {ex.Message}",
-                    type: "error"
+                    type: "danger"
                 );
                 
                 return 0;

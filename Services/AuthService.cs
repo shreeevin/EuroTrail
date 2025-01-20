@@ -10,20 +10,18 @@ namespace EuroTrail.Services
         private static string DatabaseFolderPath => Path.Combine(BaseDirectory, "Database");
         private static string DatabaseFilePath => Path.Combine(DatabaseFolderPath, "EuroTrail.db");
 
-        private static ToasterService toasterService = new ToasterService();
-
         public static User? GetCurrentUser()
         {
-            toasterService.ShowToast(
-                message: "Authentication Failed", 
-                description: "Username must be between 4 and 12 characters.",
-                type: "info"
-            );
-
             string? username = Session.GetInstance().Username;
 
             if (string.IsNullOrEmpty(username))
             {
+                ToasterService.ShowGlobalToast(
+                    message: "Invalid Username", 
+                    description: "Oops! We couldn't access the username. Plase try again later.", 
+                    type: "warning"
+                );
+
                 return null;
             }
 
@@ -65,10 +63,10 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                toasterService.ShowToast(
-                    message: "Authentication Failed", 
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
                     description: $"Error fetching user data: {ex.Message}",
-                    type: "error"
+                    type: "danger"
                 );
             }
 
@@ -81,7 +79,12 @@ namespace EuroTrail.Services
             {
                 if (IsUsernameDuplicate(username))
                 {
-                    toasterService.ShowToast("Authentication Failed", $"Oops! we have some problem here, seems like user with username ({username}) already exists.", "error");
+                    ToasterService.ShowGlobalToast(
+                        message: "Duplicate Username", 
+                        description: $"Oops! we have some problem here, seems like user with username ({username}) already exists.", 
+                        type: "warning"
+                    );
+
                     return false;
                 }
 
@@ -107,10 +110,10 @@ namespace EuroTrail.Services
                         return true;
 
                     } else {                         
-                        toasterService.ShowToast(
+                        ToasterService.ShowGlobalToast(
                             message: "Authentication Failed", 
                             description: "Oops! we have some problem here, seems like invalid username or password.",
-                            type: "error"
+                            type: "warning"
                         );                      
 
                         return false;
@@ -120,10 +123,10 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                toasterService.ShowToast(
-                    message: "Authentication Failed", 
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
                     description: $"Error during registration: {ex.Message}",
-                    type: "error"
+                    type: "danger"
                 ); 
 
                 return false;
@@ -154,10 +157,10 @@ namespace EuroTrail.Services
 
                             if (isBlocked)
                             {
-                                toasterService.ShowToast(
+                                ToasterService.ShowGlobalToast(
                                     message: "Authentication Failed", 
                                     description: $"Oops! we have some problem here, seems like username {username} is blocked.",
-                                    type: "error"
+                                    type: "warning"
                                 ); 
 
                                 return false;
@@ -170,10 +173,10 @@ namespace EuroTrail.Services
                             }
                             else
                             {
-                                toasterService.ShowToast(
+                                ToasterService.ShowGlobalToast(
                                     message: "Authentication Failed", 
                                     description: "Oops! we have some problem here, seems like invalid username or password.",
-                                    type: "error"
+                                    type: "warning"
                                 );
 
                                 return false;
@@ -181,10 +184,10 @@ namespace EuroTrail.Services
                         }
                         else
                         {
-                            toasterService.ShowToast(
+                            ToasterService.ShowGlobalToast(
                                 message: "Authentication Failed", 
                                 description: $"Oops! User not found with username {username}. Please try creating EuroTrail account.",
-                                type: "error"
+                                type: "warning"
                             );
 
                             return false;
@@ -194,7 +197,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error during login: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error during login: {ex.Message}",
+                    type: "danger"
+                );
+
                 return false;
             }
         }
@@ -206,14 +214,24 @@ namespace EuroTrail.Services
             {
                 if (IsEmailDuplicate(email, username))
                 {
-                    Console.WriteLine("The email address is already in use by another account.");
+                    ToasterService.ShowGlobalToast(
+                        message: "Duplicate Email", 
+                        description: "The email address is already in use by another account.",
+                        type: "warning"
+                    );
+
                     return false;
 
                 }
 
                 if (IsPhoneDuplicate(phone, username))
                 {
-                    Console.WriteLine("The phone number is already in use by another account.");
+                    ToasterService.ShowGlobalToast(
+                        message: "Duplicate Email", 
+                        description: "The phone number is already in use by another account.",
+                        type: "warning"
+                    );
+
                     return false;
                 }
 
@@ -238,14 +256,24 @@ namespace EuroTrail.Services
                     }
                     else
                     {
-                        Console.WriteLine("There was a problem updating your details. Please try again.");
+                        ToasterService.ShowGlobalToast(
+                            message: "Update Failed", 
+                            description: "There was a problem updating your details. Please try again.",
+                            type: "warning"
+                        );
+
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error updating onboard details: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error updating onboard details: {ex.Message}",
+                    type: "danger"
+                );
+
                 return true;                
             }
         }
@@ -280,7 +308,12 @@ namespace EuroTrail.Services
 
                     if (oldHashedPassword == null || !AuthHelper.CheckPassword(oldPassword, oldHashedPassword))
                     {
-                        Console.WriteLine("Oops! We have some issue here. The old password is incorrect.");
+                        ToasterService.ShowGlobalToast(
+                            message: "Invalid Password", 
+                            description: "Oops! We have some issue here. The old password is incorrect.",
+                            type: "warning"
+                        );
+
                         return false;
                     }
 
@@ -300,14 +333,24 @@ namespace EuroTrail.Services
                     }
                     else
                     {
-                        Console.WriteLine("There was a problem updating your details.");
+                        ToasterService.ShowGlobalToast(
+                            message: "Update Failed", 
+                            description: "There was a problem updating your details.",
+                            type: "warning"
+                        );
+
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error updating onboard details: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error updating onboard details: {ex.Message}",
+                    type: "danger"
+                );
+
                 return false;
             }
         }
@@ -338,7 +381,12 @@ namespace EuroTrail.Services
 
                     if (wallet == null)
                     {
-                        Console.WriteLine("User not found. Please check the user ID.");
+                        ToasterService.ShowGlobalToast(
+                            message: "Server Error", 
+                            description: "User not found. Please check the user ID.",
+                            type: "warning"
+                        );
+
                         return 0; 
                     }
 
@@ -347,7 +395,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error checking wallet balance: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error checking wallet balance: {ex.Message}",
+                    type: "danger"
+                );
+
                 return 0; 
             }
         }
@@ -357,7 +410,12 @@ namespace EuroTrail.Services
             {
                 if (action != "add" && action != "reduce")
                 {
-                    Console.WriteLine("Invalid action. Use 'add' or 'reduce'.");
+                    ToasterService.ShowGlobalToast(
+                        message: "Server Error", 
+                        description: "Invalid action. Use 'add' or 'reduce'.",
+                        type: "warning"
+                    );
+
                     return false;
                 }
 
@@ -389,7 +447,12 @@ namespace EuroTrail.Services
 
                     if (currentWallet == null)
                     {
-                        Console.WriteLine("User not found. Please check the user ID.");
+                        ToasterService.ShowGlobalToast(
+                            message: "Server Error", 
+                            description: "User not found. Please check the user ID.",
+                            type: "warning"
+                        );
+
                         return false;
                     }
 
@@ -411,14 +474,24 @@ namespace EuroTrail.Services
                     }
                     else
                     {
-                        Console.WriteLine("There was a problem updating your wallet balance. Please try again.");
+                        ToasterService.ShowGlobalToast(
+                            message: "Server Error", 
+                            description: "There was a problem updating your wallet balance. Please try again.",
+                            type: "warning"
+                        );
+
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error updating wallet balance: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error updating wallet balance: {ex.Message}",
+                    type: "danger"
+                );
+
                 return false;
             }
         }
@@ -470,7 +543,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error checking if user is configured: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error checking if user is configured: {ex.Message}",
+                    type: "danger"
+                );
+
                 return false;
             }
         }
@@ -497,7 +575,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error checking if user exists: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error checking if user exists: {ex.Message}",
+                    type: "danger"
+                );
+
                 return false;
             }
         }
@@ -523,7 +606,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error checking email: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error checking email: {ex.Message}",
+                    type: "danger"
+                );
+
                 return false;
             }
         }
@@ -549,7 +637,12 @@ namespace EuroTrail.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error checking phone: {ex.Message}");
+                ToasterService.ShowGlobalToast(
+                    message: "Server Error", 
+                    description: $"Error checking phone: {ex.Message}",
+                    type: "danger"
+                );
+
                 return false;
             }
         }
