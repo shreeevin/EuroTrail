@@ -26,7 +26,7 @@
         <ApplicationTitle>EuroTrail</ApplicationTitle>
 
         <!-- App Identifier -->
-        <ApplicationId>com.companyname.eurotrail</ApplicationId>
+        <ApplicationId>com.nben.eurotrail</ApplicationId>
 
         <!-- Versions -->
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
