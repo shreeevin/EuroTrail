@@ -1,6 +1,8 @@
 @page "/login"
 @layout EuroTrail.Components.Layout.AuthLayout
 @inject NavigationManager NavigationManager
+@using Microsoft.AspNetCore.Components.Forms
+@using EuroTrail.Services
 
 @code {
 	private string Username { get; set; } = "nben"; // string.Empty 
@@ -51,6 +53,13 @@
             if (loginSuccessful)
             {
 				IsInitiate = false;
+
+                ToasterService.ShowGlobalToast(
+                    message: "Authentication",
+                    description: $"Welcome back, {Username}! You've successfully logged in.",
+                    type: "success"
+                );
+                
                 NavigationManager.NavigateTo("/dashboard");
             }
             else

@@ -5,6 +5,8 @@
 @using EuroTrail.Models
 
 @inject NavigationManager NavigationManager
+@using Microsoft.AspNetCore.Components.Forms
+@using EuroTrail.Services
 
 @code {
     private List<Currency> Currencies = new();
@@ -55,6 +57,12 @@
 
             if (registrationSuccessful)
             {
+                ToasterService.ShowGlobalToast(
+                    message: "Authentication",
+                    description: $"Welcome {Username}, Account has been successfully created.",
+                    type: "success"
+                );
+
                 NavigationManager.NavigateTo("/login");
             }
             else

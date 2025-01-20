@@ -1,6 +1,8 @@
 ﻿@inherits ComponentBase
 @inject NavigationManager NavigationManager
 
+@using EuroTrail.Services
+
 @code {
     private string CurrentPage = string.Empty;
     private int allTransactionCount = 0;
@@ -14,6 +16,13 @@
     private void HandelLogout()
     {
         EuroTrail.Services.Session.GetInstance().LogOut();
+
+        ToasterService.ShowGlobalToast(
+            message: "Authentication",
+            description: $"You've successfully logged out.",
+            type: "success"
+        );
+
         NavigationManager.NavigateTo("/login");
     }
 
